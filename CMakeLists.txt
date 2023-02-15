@@ -45,6 +45,7 @@ endif()
 SET(DATA_PATH "ux0:data/gof2/" CACHE STRING "Path to data files") # WITH trailing slash!
 SET(DATA_PATH_INT "${DATA_PATH}assets/" CACHE STRING "Path to assets folder") # WITH trailing slash!
 SET(SO_PATH "${DATA_PATH}lib/armeabi/libgof2.so" CACHE STRING "Path to .so")
+SET(APK_PATH "${DATA_PATH}GalaxyOnFire.apk" CACHE STRING "Path to .apk")
 
 add_definitions(-DDATA_PATH="${DATA_PATH}")
 add_definitions(-DDATA_PATH_INT="${DATA_PATH_INT}")
@@ -73,6 +74,7 @@ add_executable(so_loader
         loader/utils/glutil.c
         loader/utils/logger.c
         loader/utils/utils.c
+        loader/AFakeNative/ALooper.cpp
         lib/FalsoJNI/FalsoJNI.c
         lib/FalsoJNI/FalsoJNI_ImplBridge.c
         lib/FalsoJNI/FalsoJNI_Logger.c

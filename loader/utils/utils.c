@@ -234,41 +234,25 @@ int soloader_init_all() {
     logv_info("so_file_load(%s) passed.\n", SO_PATH);
 
     so_relocate(&so_mod);
-    log_info("so_relocate() passed.\n");
+    log_info("so_relocate() passed.");
 
     resolve_imports(&so_mod);
-    log_info("so_resolve() passed.\n");
+    log_info("so_resolve() passed.");
 
     so_patch();
-    log_info("so_patch() passed.\n");
+    log_info("so_patch() passed.");
 
     so_flush_caches(&so_mod);
-    log_info("so_flush_caches() passed.\n");
+    log_info("so_flush_caches() passed.");
 
     so_initialize(&so_mod);
-    log_info("so_initialize() passed.\n");
+    log_info("so_initialize() passed.");
 
     gl_preload();
-    log_info("gl_preload() passed.\n");
+    log_info("gl_preload() passed.");
 
     jni_init();
-    log_info("jni_init() passed.\n");
-
-    if (!is_dir("ux0:data/masseffect/assets/var")) {
-        mkdir("ux0:data/masseffect/assets/var", 0700);
-    }
-
-    if (!is_dir("ux0:data/masseffect/assets/var1")) {
-        mkdir("ux0:data/masseffect/assets/var1", 0700);
-    }
-
-    if (!is_dir("ux0:data/masseffect/assets/files")) {
-        mkdir("ux0:data/masseffect/assets/files", 0700);
-    }
-
-    if (!is_dir("ux0:data/masseffect/assets/files/GameSkeleton")) {
-        mkdir("ux0:data/masseffect/assets/files/GameSkeleton", 0700);
-    }
+    log_info("jni_init() passed.");
 
     return 1;
 }
