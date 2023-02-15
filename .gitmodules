@@ -1,0 +1,7 @@
+[submodule "lib/FalsoJNI"]
+	path = lib/FalsoJNI
+	url = https://github.com/v-atamanenko/FalsoJNI
+[submodule "lib/kubridge"]
+	path = lib/kubridge
+	url = https://github.com/bythos14/kubridge
+	branch = exceptions_mprotect
