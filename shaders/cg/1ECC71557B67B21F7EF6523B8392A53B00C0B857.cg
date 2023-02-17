@@ -1,0 +1,21 @@
+// profile sce_fp_psp2
+
+uniform sampler2D s_texture_norm;
+uniform sampler2D s_texture_base;
+uniform float4 glColor;
+uniform float4 u_AmbientColor;
+
+float4 main(float2 v_texCoord : TEXCOORD0, float3 v_light_dir : TEXCOORD3, float3 v_eye_dir : TEXCOORD2, float3 v_lightvec : TEXCOORD4) {
+	float4 gl_FragColor;
+
+	float3 normal = normalize(tex2D(s_texture_norm, v_texCoord).rgb*2.0 - 1.0);
+
+	float3 lightvec = normalize(v_lightvec);
+
+	float specularIntensity = abs( dot(lightvec, normal) );
+	float4 textureColor = tex2D( s_texture_base, v_texCoord );
+
+	gl_FragColor =  ( specularIntensity ) * textureColor * glColor;
+
+	return gl_FragColor;
+}

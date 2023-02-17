@@ -42,11 +42,19 @@ void _log_unlock() {
     }
 }
 
+void do_vsnprintf(char * dst, size_t n, const char * fmt, ...) {
+    va_list list;
+    va_start(list, fmt);
+    sceClibVsnprintf(dst, n, fmt, list);
+    va_end(list);
+}
+
 int _log_info(const char *fname, int lineno, const char *fxname, const char* fmt, ...) {
 #ifdef DEBUG_SOLOADER
+    static char fmt_colored[2048];
     _log_lock();
-    char fmt_colored[2048];
-    snprintf(fmt_colored, 2047, "%s[INFO] %s%s\n", COLOR_BLUE, fmt, COLOR_END);
+
+    do_vsnprintf(fmt_colored, sizeof(fmt_colored), "%s[INFO] %s%s\n", COLOR_BLUE, fmt, COLOR_END);
 
     va_list list;
     va_start(list, fmt);

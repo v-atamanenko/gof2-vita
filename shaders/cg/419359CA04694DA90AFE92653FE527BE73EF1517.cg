@@ -1,0 +1,15 @@
+// profile sce_fp_psp2
+
+uniform sampler2D s_texture;
+uniform float4 glColor;
+
+float4 main(float2 v_texCoord : TEXCOORD0) {
+	float4 gl_FragColor;
+
+	float4 textureColor = tex2D( s_texture, v_texCoord );
+	if ( textureColor.a < 0.5)	
+		discard;
+	gl_FragColor = glColor * textureColor;
+
+	return gl_FragColor;
+}

@@ -17,6 +17,7 @@
 #include <FalsoJNI/FalsoJNI.h>
 #include <psp2/apputil.h>
 #include <psp2/system_param.h>
+#include <sys/unistd.h>
 #include "utils/glutil.h"
 #include "utils/logger.h"
 
@@ -69,15 +70,17 @@ void setCountry() {
 int main(int argc, char*argv[]) {
     soloader_init_all();
 
-    vglSetParamBufferSize(8 * 1024 * 1024);
-    vglUseCachedMem(GL_TRUE);
-    vglInitWithCustomThreshold(0, 960, 544, 256 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
-    log_info("gl_init() passed");
+    //vglSetParamBufferSize(8 * 1024 * 1024);
+    //vglUseCachedMem(GL_TRUE);
+    //vglInitWithCustomThreshold(0, 960, 544, 256 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
+    //log_info("gl_init() passed");
 
     int (*JNI_OnLoad)(JavaVM* jvm) = (void*)so_symbol(&so_mod,"JNI_OnLoad");
 
     void (*setAPKPath)(JNIEnv *env, void *unused, jstring apk_path) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_setAPKPath");
     void (*SetDirectory)(JNIEnv *env, void *unused, jstring data_directory) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_SetDirectory");
+
+    int (*ANativeActivity_onCreate)(ANativeActivity* activity) = (void*)so_symbol(&so_mod,"ANativeActivity_onCreate");
 
     JNI_OnLoad(&jvm);
     log_info("JNI_OnLoad() passed");
@@ -91,7 +94,19 @@ int main(int argc, char*argv[]) {
     setCountry();
     log_info("setCountry() passed");
 
+    ANativeActivity * activity = ANativeActivity_create();
+    ANativeActivity_onCreate(activity);
+    log_info("ANativeActivity_onCreate() passed");
 
+    logv_info("onInputQueueCreated is %p, onNativeWindowCreated is %p\n", activity->callbacks->onInputQueueCreated, activity->callbacks->onNativeWindowCreated);
+
+    AInputQueue * aInputQueue = AInputQueue_create();
+    activity->callbacks->onInputQueueCreated(activity, aInputQueue);
+    log_info("onInputQueueCreated() passed");
+
+    ANativeWindow * aNativeWindow = ANativeWindow_create();
+    activity->callbacks->onNativeWindowCreated(activity, aNativeWindow);
+    log_info("onNativeWindowCreated() passed");
 
     sceKernelExitDeleteThread(0);
 }

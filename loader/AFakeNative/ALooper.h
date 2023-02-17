@@ -168,6 +168,56 @@ int ALooper_pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outDa
  */
 int ALooper_pollAll(int timeoutMillis, int* outFd, int* outEvents, void** outData);
 
+
+/**
+ * Adds a new file descriptor to be polled by the looper.
+ * If the same file descriptor was previously added, it is replaced.
+ *
+ * "fd" is the file descriptor to be added.
+ * "ident" is an identifier for this event, which is returned from ALooper_pollOnce().
+ * The identifier must be >= 0, or ALOOPER_POLL_CALLBACK if providing a non-NULL callback.
+ * "events" are the poll events to wake up on.  Typically this is ALOOPER_EVENT_INPUT.
+ * "callback" is the function to call when there is an event on the file descriptor.
+ * "data" is a private data pointer to supply to the callback.
+ *
+ * There are two main uses of this function:
+ *
+ * (1) If "callback" is non-NULL, then this function will be called when there is
+ * data on the file descriptor.  It should execute any events it has pending,
+ * appropriately reading from the file descriptor.  The 'ident' is ignored in this case.
+ *
+ * (2) If "callback" is NULL, the 'ident' will be returned by ALooper_pollOnce
+ * when its file descriptor has data available, requiring the caller to take
+ * care of processing it.
+ *
+ * Returns 1 if the file descriptor was added or -1 if an error occurred.
+ *
+ * This method can be called on any thread.
+ * This method may block briefly if it needs to wake the poll.
+ */
+int ALooper_addFd(ALooper* looper, int fd, int ident, int events,
+                  ALooper_callbackFunc callback, void* data);
+
+/**
+ * Removes a previously added file descriptor from the looper.
+ *
+ * When this method returns, it is safe to close the file descriptor since the looper
+ * will no longer have a reference to it.  However, it is possible for the callback to
+ * already be running or for it to run one last time if the file descriptor was already
+ * signalled.  Calling code is responsible for ensuring that this case is safely handled.
+ * For example, if the callback takes care of removing itself during its own execution either
+ * by returning 0 or by calling this method, then it can be guaranteed to not be invoked
+ * again at any later time unless registered anew.
+ *
+ * Returns 1 if the file descriptor was removed, 0 if none was previously registered
+ * or -1 if an error occurred.
+ *
+ * This method can be called on any thread.
+ * This method may block briefly if it needs to wake the poll.
+ */
+int ALooper_removeFd(ALooper* looper, int fd);
+
+
 #ifdef __cplusplus
 };
 #endif

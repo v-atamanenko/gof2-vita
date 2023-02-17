@@ -127,12 +127,12 @@ int pthread_create_soloader(pthread_t **thread,
     *thread = calloc(1, sizeof(pthread_t));
 
     if (attr != NULL) {
-        pthread_attr_setstacksize(*attr, 256 * 1024);
+        pthread_attr_setstacksize(*attr, 350 * 1024);
         return pthread_create(*thread, *attr, start, param);
     } else {
         pthread_attr_t attrr;
         pthread_attr_init(&attrr);
-        pthread_attr_setstacksize(&attrr, 256 * 1024);
+        pthread_attr_setstacksize(&attrr, 350 * 1024);
         int ret = pthread_create(*thread, &attrr, start, param);
         pthread_attr_destroy(&attrr);
         return ret;

@@ -1,0 +1,19 @@
+// profile sce_fp_psp2
+
+uniform sampler2D s_texture[8];
+
+float4 main(float2 v_texCoord : TEXCOORD0, float3 v_light_dir : TEXCOORD3, float3 v_eye_dir : TEXCOORD2, float3 v_lightvec : TEXCOORD4, float3 v_normal : TEXCOORD5, float3 v_specular_dir : TEXCOORD6) {
+	float4 gl_FragColor;
+
+	float4 colorTex   = tex2D( s_texture[0], v_texCoord );
+	float4 normalTex  = tex2D( s_texture[1], v_texCoord );
+	float3 normalTexX = normalTex.rgb*2.0 - 1.0;
+	float4 specTex = float4(float3(normalTex.a), 0.0);
+
+	float specularIntensity = pow( dot( v_specular_dir,normalTexX ), 10.0 );
+	float diffuseIntensity  = max( dot( normalTexX    ,v_lightvec ), 0.22 );
+
+	gl_FragColor = diffuseIntensity * colorTex + specularIntensity * specTex;
+
+	return gl_FragColor;
+}

@@ -1,0 +1,11 @@
+// profile sce_fp_psp2
+
+uniform float4 glColor;
+
+float4 main(float4 v_VertexColor : COLOR) {
+	float4 gl_FragColor;
+
+	gl_FragColor = glColor * v_VertexColor;
+
+	return gl_FragColor;
+}

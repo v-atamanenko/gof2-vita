@@ -1,0 +1,26 @@
+// profile sce_vp_psp2
+
+uniform float4x4 u_ModelViewProjectionMatrix;
+uniform float3 u_lightdirmodel;
+uniform float3 u_eyeposmodel;
+
+void main(
+	float4 a_position,
+	float2 a_texCoord,
+	float3 a_normal,
+	float3 a_tangent,
+	float3 a_bitangent,
+	float4 a_vertexColor,
+	float2 out v_texCoord : TEXCOORD0,
+	float3 out v_light_dir : TEXCOORD3,
+	float3 out v_eye_dir : TEXCOORD2,
+	float3 out v_lightvec : TEXCOORD4,
+	float3 out v_normal : TEXCOORD5,
+	float3 out v_specular_dir : TEXCOORD6,
+	float4 out v_color : COLOR,
+	float4 out gl_Position : POSITION
+) {
+   	gl_Position = mul(a_position, u_ModelViewProjectionMatrix);
+   	v_color     = a_vertexColor;
+   	v_texCoord  = a_texCoord;
+}

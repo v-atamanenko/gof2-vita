@@ -18,7 +18,7 @@ endif()
 if(DEFINED ENV{PARSECOREPATH})
   set(PARSECOREPATH "$ENV{PARSECOREPATH}")
 else()
-  set(PARSECOREPATH "/Users/v/Repos/vitasdk/vita-parse-core/main.py")
+  set(PARSECOREPATH "/home/v/Repos/vitasdk/vita-parse-core/main.py")
   message(WARNING "PARSECOREPATH environment variable is not set, using default path ${PARSECOREPATH}")
 endif()
 
@@ -49,6 +49,7 @@ SET(APK_PATH "${DATA_PATH}GalaxyOnFire.apk" CACHE STRING "Path to .apk")
 
 add_definitions(-DDATA_PATH="${DATA_PATH}")
 add_definitions(-DDATA_PATH_INT="${DATA_PATH_INT}")
+add_definitions(-DAPK_PATH="${APK_PATH}")
 add_definitions(-DSO_PATH="${SO_PATH}")
 
 # makes sincos, sincosf, etc. visible
@@ -80,7 +81,14 @@ add_executable(so_loader
         lib/FalsoJNI/FalsoJNI_Logger.c
         lib/sha1/sha1.c
         lib/so_util/so_util.c
-)
+        loader/AFakeNative/PseudoEpoll.cpp
+        loader/AFakeNative/AFakeNative_Utils.cpp
+        loader/AFakeNative/ANativeWindow.cpp
+        loader/AFakeNative/ASensor.cpp
+        loader/AFakeNative/AConfiguration.cpp
+        loader/AFakeNative/AInput.cpp
+        loader/AFakeNative/utils/controls.cpp
+        loader/AFakeNative/ANativeActivity.cpp)
 
 #set(EXCEPTION_SAFETY 1)
 #add_subdirectory(lib/kubridge)
@@ -113,7 +121,7 @@ target_link_libraries(so_loader
         ogg
         vorbisenc
         vorbisfile
-        flac
+        FLAC
         z
         m
         ScePgf_stub

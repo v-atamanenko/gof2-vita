@@ -1,0 +1,16 @@
+// profile sce_vp_psp2
+
+uniform float4x4 u_WorldMatrix;
+
+void main(
+	float4 a_position,
+	float2 a_texCoord,
+	float4 a_VertexColor,
+	float4 out v_VertexColor : COLOR,
+	float2 out v_texCoord : TEXCOORD0,
+	float4 out gl_Position : POSITION
+) {
+	gl_Position = mul(a_position, u_WorldMatrix);
+	v_texCoord = a_texCoord;
+	v_VertexColor = a_VertexColor;
+}

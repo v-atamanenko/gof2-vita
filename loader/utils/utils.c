@@ -153,7 +153,7 @@ char * get_string_sha1(uint8_t* buf, long size) {
     sha1_init(&ctx);
     sha1_update(&ctx, (uint8_t *)buf, size);
     sha1_final(&ctx, (uint8_t *)sha1);
-    free(buf);
+    //free(buf);
 
     char hash[42];
     memset(hash, 0, sizeof(hash));

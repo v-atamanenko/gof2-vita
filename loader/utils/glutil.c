@@ -38,13 +38,14 @@ void gl_swap() {
 
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
                         const GLint *_length) {
+    sceClibPrintf("glShaderSource called\n");
     int length;
 
     if (!string) {
-        printf("string == null\n");
+        sceClibPrintf("string == null\n");
         return;
     } else if (!*string) {
-        printf("*string == null\n");
+        sceClibPrintf("*string == null\n");
         return;
     }
 
@@ -75,12 +76,12 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
         }
 
         snprintf(gxp_path, sizeof(gxp_path), "%s/%s.gxp",
-                 GXP_PATH, "5e7eb5913ac3778652028876934235ebfb96beae");
+                 GXP_PATH, "35F2321364838669AF52201BB354CEA05FCF5B55");
         file = fopen(gxp_path, "rb");
     }
 
     if (file) {
-        printf("glShaderSourceHook: loading shader %s\n", gxp_path);
+        sceClibPrintf("glShaderSourceHook: loading shader %s\n", gxp_path);
         size_t shaderSize;
         void *shaderBuf;
 
@@ -94,9 +95,10 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
 
         glShaderBinary(1, &shader, 0, shaderBuf, (int32_t)shaderSize);
 
+        sceClibPrintf("axa\n");
         if(shaderBuf) free(shaderBuf);
     }
-
+    sceClibPrintf("taxa\n");
     free(sha_name);
 }
 

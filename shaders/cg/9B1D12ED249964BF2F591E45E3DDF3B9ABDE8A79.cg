@@ -1,0 +1,9 @@
+// profile sce_fp_psp2
+
+float4 main() {
+	float4 gl_FragColor;
+
+	gl_FragColor = float4(0.0,1.0,0.0, 0.7);
+
+	return gl_FragColor;
+}

@@ -6,9 +6,13 @@
 #include <vector>
 #include <cstring>
 #include <unordered_map>
+#include <sys/unistd.h>
 
 #include "AFakeNative_Utils.h"
 #include "PseudoEpoll.h"
+
+//#define DEBUG_CALLBACKS 1
+//#define DEBUG_POLL_AND_WAKE 1
 
 // Maximum number of file descriptors for which to retrieve poll events each iteration.
 static const int EPOLL_MAX_EVENTS = 16;
@@ -27,7 +31,12 @@ struct Request {
     ALooper_callbackFunc callback;
     void* data;
 
-    uint32_t getEpollEvents() const;
+    uint32_t getEpollEvents() const {
+        uint32_t epollEvents = 0;
+        if (events & ALOOPER_EVENT_INPUT) epollEvents |= PSEUDO_EPOLLIN;
+        if (events & ALOOPER_EVENT_OUTPUT) epollEvents |= PSEUDO_EPOLLOUT;
+        return epollEvents;
+    }
 };
 
 struct Response {
@@ -85,7 +94,7 @@ struct internal_ALooper {
     int mWakeEventFd;  // immutable
     pthread_mutex_t mLock;
 
-    std::vector<MessageEnvelope> mMessageEnvelopes; // guarded by mLock
+    std::vector<MessageEnvelope>* mMessageEnvelopes; // guarded by mLock
     bool mSendingMessage; // guarded by mLock
 
     // Whether we are currently waiting for work.  Not protected by a lock,
@@ -97,8 +106,8 @@ struct internal_ALooper {
 
     // Locked maps of fds and sequence numbers monitoring requests.
     // Both maps must be kept in sync at all times.
-    std::unordered_map<SequenceNumber, Request> mRequests;               // guarded by mLock
-    std::unordered_map<int /*fd*/, SequenceNumber> mSequenceNumberByFd;  // guarded by mLock
+    std::unordered_map<SequenceNumber, Request>* mRequests;               // guarded by mLock
+    std::unordered_map<int /*fd*/, SequenceNumber>* mSequenceNumberByFd;  // guarded by mLock
 
     // The sequence number to use for the next fd that is added to the looper.
     // The sequence number 0 is reserved for the WakeEventFd.
@@ -106,7 +115,7 @@ struct internal_ALooper {
 
     // This state is only used privately by pollOnce and does not require a lock since
     // it runs on a single thread.
-    std::vector<Response> mResponses;
+    std::vector<Response>* mResponses;
     size_t mResponseIndex;
     uint64_t mNextMessageUptime; // set to LLONG_MAX when none
 };
@@ -115,8 +124,7 @@ void rebuildEpollLocked(internal_ALooper * self);
 
 extern "C" void __destr_fn(void *parm)
 {
-    printf("Destructor function invoked\n");
-    free(parm);
+    if (parm) free(parm);
 }
 
 ALooper* ALooper_forThread() {
@@ -145,6 +153,11 @@ ALooper* ALooper_prepare(int opts) {
     ial->mResponseIndex = 0;
     ial->mNextMessageUptime = LLONG_MAX;
     ial->mWakeEventFd = pseudo_eventfd(0, PSEUDO_EFD_NONBLOCK | PSEUDO_EFD_CLOEXEC);
+    ial->mSequenceNumberByFd = new std::unordered_map<int /*fd*/, SequenceNumber>;
+    ial->mRequests = new std::unordered_map<SequenceNumber, Request>;
+    ial->mResponses = new std::vector<Response>;
+    ial->mMessageEnvelopes = new std::vector<MessageEnvelope>;
+
     LOG_ALWAYS_FATAL_IF(ial->mWakeEventFd < 0, "Could not make wake event fd: %s", strerror(errno));
 
     pthread_mutex_init(&ial->mLock, NULL);
@@ -156,6 +169,8 @@ ALooper* ALooper_prepare(int opts) {
         }
     }
 
+    ALOGD("prepared ALooper %p\n", ial);
+
     return (ALooper *) ial;
 }
 
@@ -165,7 +180,7 @@ pseudo_epoll_event createEpollEvent(uint32_t events, uint64_t seq) {
 
 void wake(internal_ALooper * self) {
 #if DEBUG_POLL_AND_WAKE
-    ALOGD("%p ~ wake", this);
+    ALOGD("%p ~ wake", self);
 #endif
 
     uint64_t inc = 1;
@@ -181,7 +196,7 @@ void wake(internal_ALooper * self) {
 
 void awoken(internal_ALooper * self) {
 #if DEBUG_POLL_AND_WAKE
-    ALOGD("%p ~ awoken", this);
+    ALOGD("%p ~ awoken", self);
 #endif
 
     uint64_t counter;
@@ -191,7 +206,7 @@ void awoken(internal_ALooper * self) {
 void scheduleEpollRebuildLocked(internal_ALooper * self) {
     if (!self->mEpollRebuildRequired) {
 #if DEBUG_CALLBACKS
-        ALOGD("%p ~ scheduleEpollRebuildLocked - scheduling epoll set rebuild", this);
+        ALOGD("%p ~ scheduleEpollRebuildLocked - scheduling epoll set rebuild", self);
 #endif
         self->mEpollRebuildRequired = true;
         wake(self);
@@ -199,20 +214,20 @@ void scheduleEpollRebuildLocked(internal_ALooper * self) {
 }
 
 int removeSequenceNumberLocked(internal_ALooper * self, SequenceNumber seq) {
-#if DEBUG_CALLBACKS
-    ALOGD("%p ~ removeFd - fd=%d, seq=%u", this, fd, seq);
-#endif
 
-    const auto& request_it = self->mRequests.find(seq);
-    if (request_it == self->mRequests.end()) {
+
+    const auto& request_it = self->mRequests->find(seq);
+    if (request_it == self->mRequests->end()) {
         return 0;
     }
     const int fd = request_it->second.fd;
-
+#if DEBUG_CALLBACKS
+    ALOGD("%p ~ removeFd - fd=%d, seq=%u", self, fd, seq);
+#endif
     // Always remove the FD from the request map even if an error occurs while
     // updating the epoll set so that we avoid accidentally leaking callbacks.
-    self->mRequests.erase(request_it);
-    self->mSequenceNumberByFd.erase(fd);
+    self->mRequests->erase(request_it);
+    self->mSequenceNumberByFd->erase(self->mSequenceNumberByFd->find(fd));
 
     int epollResult = pseudo_epoll_ctl(self->mEpollFd, PSEUDO_EPOLL_CTL_DEL, fd, nullptr);
     if (epollResult < 0) {
@@ -230,7 +245,7 @@ int removeSequenceNumberLocked(internal_ALooper * self, SequenceNumber seq) {
 #if DEBUG_CALLBACKS
             ALOGD("%p ~ removeFd - EPOLL_CTL_DEL failed due to file descriptor "
                   "being closed: %s",
-                  this, strerror(errno));
+                  self, strerror(errno));
 #endif
             scheduleEpollRebuildLocked(self);
         } else {
@@ -250,7 +265,7 @@ void rebuildEpollLocked(internal_ALooper * self) {
     // Close old epoll instance if we have one.
     if (self->mEpollFd >= 0) {
 #if DEBUG_CALLBACKS
-        ALOGD("%p ~ rebuildEpollLocked - rebuilding epoll set", this);
+        ALOGD("%p ~ rebuildEpollLocked - rebuilding epoll set", self);
 #endif
         self->mEpollFd = -1;
     }
@@ -264,7 +279,7 @@ void rebuildEpollLocked(internal_ALooper * self) {
     LOG_ALWAYS_FATAL_IF(result != 0, "Could not add wake event fd to epoll instance: %s",
                         strerror(errno));
 
-    for (const auto& [seq, request] : self->mRequests) {
+    for (const auto& [seq, request] : * self->mRequests) {
         pseudo_epoll_event eventItem = createEpollEvent(request.getEpollEvents(), seq);
 
         int epollResult = pseudo_epoll_ctl(self->mEpollFd, PSEUDO_EPOLL_CTL_ADD, request.fd, &eventItem);
@@ -287,7 +302,7 @@ int pollInner (int timeoutMillis) {
     LOOPER_GET_SELF
 
 #if DEBUG_POLL_AND_WAKE
-    ALOGD("%p ~ pollOnce - waiting: timeoutMillis=%d", this, timeoutMillis);
+    ALOGD("%p ~ pollOnce - waiting: timeoutMillis=%d", self, timeoutMillis);
 #endif
 
     // Adjust the timeout based on when the next message is due.
@@ -299,14 +314,14 @@ int pollInner (int timeoutMillis) {
             timeoutMillis = (int) messageTimeoutMillis;
         }
 #if DEBUG_POLL_AND_WAKE
-        ALOGD("%p ~ pollOnce - next message in %" PRId64 "ns, adjusted timeout: timeoutMillis=%d",
-                this, mNextMessageUptime - now, timeoutMillis);
+        ALOGD("%p ~ pollOnce - next message in %lluns, adjusted timeout: timeoutMillis=%d",
+                self, self->mNextMessageUptime - now, timeoutMillis);
 #endif
     }
 
     // Poll.
     int result = ALOOPER_POLL_WAKE;
-    self->mResponses.clear();
+    self->mResponses->clear();
     self->mResponseIndex = 0;
 
     // We are about to idle.
@@ -341,7 +356,7 @@ int pollInner (int timeoutMillis) {
     // Check for poll timeout.
     if (eventCount == 0) {
 #if DEBUG_POLL_AND_WAKE
-        ALOGD("%p ~ pollOnce - timeout", this);
+        ALOGD("%p ~ pollOnce - timeout", self);
 #endif
         result = ALOOPER_POLL_TIMEOUT;
         goto Done;
@@ -349,7 +364,7 @@ int pollInner (int timeoutMillis) {
 
     // Handle all events.
 #if DEBUG_POLL_AND_WAKE
-    ALOGD("%p ~ pollOnce - handling events from %d fds", this, eventCount);
+    ALOGD("%p ~ pollOnce - handling events from %d fds", self, eventCount);
 #endif
 
     for (int i = 0; i < eventCount; i++) {
@@ -362,8 +377,8 @@ int pollInner (int timeoutMillis) {
                 printf("Ignoring unexpected epoll events 0x%x on wake event fd.", epollEvents);
             }
         } else {
-            const auto& request_it = self->mRequests.find(seq);
-            if (request_it != self->mRequests.end()) {
+            const auto& request_it = self->mRequests->find(seq);
+            if (request_it != self->mRequests->end()) {
                 const auto& request = request_it->second;
                 int events = 0;
                 if (epollEvents & PSEUDO_EPOLLIN) events |= ALOOPER_EVENT_INPUT;
@@ -371,7 +386,7 @@ int pollInner (int timeoutMillis) {
                 if (epollEvents & PSEUDO_EPOLLERR) events |= ALOOPER_EVENT_ERROR;
                 if (epollEvents & PSEUDO_EPOLLHUP) events |= ALOOPER_EVENT_HANGUP;
                 Response r = {.seq = seq, .events = events, .request = request};
-                self->mResponses.emplace_back(r);
+                self->mResponses->emplace_back(r);
             } else {
                 printf("Ignoring unexpected epoll events 0x%x for sequence number %llu that is no longer registered.",
                         epollEvents, seq);
@@ -382,9 +397,9 @@ int pollInner (int timeoutMillis) {
 
     // Invoke pending message callbacks.
     self->mNextMessageUptime = LLONG_MAX;
-    while (self->mMessageEnvelopes.size() != 0) {
+    while (self->mMessageEnvelopes->size() != 0) {
         uint64_t now = AFN_timeMillis();
-        const MessageEnvelope& messageEnvelope = self->mMessageEnvelopes.at(0);
+        const MessageEnvelope& messageEnvelope = self->mMessageEnvelopes->at(0);
         if (messageEnvelope.uptime <= now) {
             // Remove the envelope from the list.
             // We keep a strong reference to the handler until the call to handleMessage
@@ -393,13 +408,13 @@ int pollInner (int timeoutMillis) {
             { // obtain handler
                 MessageHandler * handler = messageEnvelope.handler;
                 Message message = messageEnvelope.message;
-                self->mMessageEnvelopes.erase(self->mMessageEnvelopes.begin());
+                self->mMessageEnvelopes->erase(self->mMessageEnvelopes->begin());
                 self->mSendingMessage = true;
                 pthread_mutex_unlock(&self->mLock);
 
 #if DEBUG_POLL_AND_WAKE || DEBUG_CALLBACKS
                 ALOGD("%p ~ pollOnce - sending message: handler=%p, what=%d",
-                        this, handler.get(), message.what);
+                        self, handler, message.what);
 #endif
                 handler->handleMessage(message);
             } // release handler
@@ -418,15 +433,15 @@ int pollInner (int timeoutMillis) {
     pthread_mutex_unlock(&self->mLock);
 
     // Invoke all response callbacks.
-    for (size_t i = 0; i < self->mResponses.size(); i++) {
-        Response& response = self->mResponses.at(i);
+    for (size_t i = 0; i < self->mResponses->size(); i++) {
+        Response& response = self->mResponses->at(i);
         if (response.request.ident == ALOOPER_POLL_CALLBACK) {
             int fd = response.request.fd;
             int events = response.events;
             void* data = response.request.data;
 #if DEBUG_POLL_AND_WAKE || DEBUG_CALLBACKS
             ALOGD("%p ~ pollOnce - invoking fd event callback %p: fd=%d, events=0x%x, data=%p",
-                    this, response.request.callback.get(), fd, events, data);
+                    self, response.request.callback, fd, events, data);
 #endif
             // Invoke the callback.  Note that the file descriptor may be closed by
             // the callback (and potentially even reused) before the function returns so
@@ -454,8 +469,8 @@ int ALooper_pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outDa
 
     int result = 0;
     for (;;) {
-        while (self->mResponseIndex < self->mResponses.size()) {
-            const Response& response = self->mResponses.at(self->mResponseIndex++);
+        while (self->mResponseIndex < self->mResponses->size()) {
+            const Response& response = self->mResponses->at(self->mResponseIndex++);
             int ident = response.request.ident;
             if (ident >= 0) {
                 int fd = response.request.fd;
@@ -464,7 +479,7 @@ int ALooper_pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outDa
 #if DEBUG_POLL_AND_WAKE
                 ALOGD("%p ~ pollOnce - returning signalled identifier %d: "
                         "fd=%d, events=0x%x, data=%p",
-                        this, ident, fd, events, data);
+                        self, ident, fd, events, data);
 #endif
                 if (outFd != nullptr) *outFd = fd;
                 if (outEvents != nullptr) *outEvents = events;
@@ -475,7 +490,7 @@ int ALooper_pollOnce(int timeoutMillis, int* outFd, int* outEvents, void** outDa
 
         if (result != 0) {
 #if DEBUG_POLL_AND_WAKE
-            ALOGD("%p ~ pollOnce - returning result %d", this, result);
+            ALOGD("%p ~ pollOnce - returning result %d", self, result);
 #endif
             if (outFd != nullptr) *outFd = 0;
             if (outEvents != nullptr) *outEvents = 0;
@@ -511,4 +526,112 @@ int ALooper_pollAll(int timeoutMillis, int* outFd, int* outEvents, void** outDat
         }
     }
 
+}
+
+int ALooper_addFd(ALooper* looper, int fd, int ident, int events,
+                  ALooper_callbackFunc callback, void* data) {
+    if (!looper) return -1;
+    auto * self = (internal_ALooper *) looper;
+
+#if DEBUG_CALLBACKS
+    ALOGD("%p ~ addFd - fd=%d, ident=%d, events=0x%x, callback=%p, data=%p", self, fd, ident,
+            events, callback, data);
+#endif
+
+    if (!callback) {
+        if (! self->mAllowNonCallbacks) {
+            ALOGE("Invalid attempt to set NULL callback but not allowed for this looper.");
+            return -1;
+        }
+
+        if (ident < 0) {
+            ALOGE("Invalid attempt to set NULL callback with ident < 0.");
+            return -1;
+        }
+    } else {
+        ident = ALOOPER_POLL_CALLBACK;
+    }
+
+    pthread_mutex_lock(&self->mLock);
+
+    // There is a sequence number reserved for the WakeEventFd.
+    if (self->mNextRequestSeq == WAKE_EVENT_FD_SEQ) self->mNextRequestSeq++;
+    const SequenceNumber seq = self->mNextRequestSeq++;
+
+    Request request;
+    request.fd = fd;
+    request.ident = ident;
+    request.events = events;
+    request.callback = callback;
+    request.data = data;
+    pseudo_epoll_event eventItem = createEpollEvent(request.getEpollEvents(), seq);
+    auto seq_it = self->mSequenceNumberByFd->find(fd);
+    if (seq_it == self->mSequenceNumberByFd->end()) {
+        int epollResult = pseudo_epoll_ctl(self->mEpollFd, PSEUDO_EPOLL_CTL_ADD, fd, &eventItem);
+        if (epollResult < 0) {
+            ALOGE("Error adding epoll events for fd %d: %s", fd, strerror(errno));
+            pthread_mutex_unlock(&self->mLock);
+            return -1;
+        }
+        self->mRequests->emplace(seq, request);
+        self->mSequenceNumberByFd->emplace(std::make_pair(fd, seq));
+    } else {
+        int epollResult = pseudo_epoll_ctl(self->mEpollFd, PSEUDO_EPOLL_CTL_MOD, fd, &eventItem);
+        if (epollResult < 0) {
+            if (errno == ENOENT) {
+                // Tolerate ENOENT because it means that an older file descriptor was
+                // closed before its callback was unregistered and meanwhile a new
+                // file descriptor with the same number has been created and is now
+                // being registered for the first time.  This error may occur naturally
+                // when a callback has the side-effect of closing the file descriptor
+                // before returning and unregistering itself.  Callback sequence number
+                // checks further ensure that the race is benign.
+                //
+                // Unfortunately due to kernel limitations we need to rebuild the epoll
+                // set from scratch because it may contain an old file handle that we are
+                // now unable to remove since its file descriptor is no longer valid.
+                // No such problem would have occurred if we were using the poll system
+                // call instead, but that approach carries other disadvantages.
+#if DEBUG_CALLBACKS
+                ALOGD("%p ~ addFd - EPOLL_CTL_MOD failed due to file descriptor "
+                        "being recycled, falling back on EPOLL_CTL_ADD: %s",
+                        self, strerror(errno));
+#endif
+                epollResult = pseudo_epoll_ctl(self->mEpollFd, PSEUDO_EPOLL_CTL_ADD, fd, &eventItem);
+                if (epollResult < 0) {
+                    ALOGE("Error modifying or adding epoll events for fd %d: %s",
+                          fd, strerror(errno));
+                    pthread_mutex_unlock(&self->mLock);
+                    return -1;
+                }
+                scheduleEpollRebuildLocked(self);
+            } else {
+                ALOGE("Error modifying epoll events for fd %d: %s", fd, strerror(errno));
+                pthread_mutex_unlock(&self->mLock);
+                return -1;
+            }
+        }
+        const SequenceNumber oldSeq = seq_it->second;
+        self->mRequests->erase(oldSeq);
+        self->mRequests->emplace(seq, request);
+        seq_it->second = seq;
+    }
+    pthread_mutex_unlock(&self->mLock);
+    return 1;
+}
+
+int ALooper_removeFd(ALooper* looper, int fd) {
+    if (!looper) return -1;
+    auto * self = (internal_ALooper *) looper;
+
+    pthread_mutex_lock(&self->mLock);
+
+    const auto& it = self->mSequenceNumberByFd->find(fd);
+    if (it == self->mSequenceNumberByFd->end()) {
+        pthread_mutex_unlock(&self->mLock);
+        return 0;
+    }
+    int ret = removeSequenceNumberLocked(self,it->second);
+    pthread_mutex_unlock(&self->mLock);
+    return ret;
 }
