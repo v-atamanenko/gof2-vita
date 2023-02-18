@@ -35,7 +35,7 @@ int _ZN11AbyssEngine14ES2LoadProgramEPKcS1_(char * a, char * b) {
 so_hook setGameOrientation_hook;
 
 void _ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE(void * this, int mode) {
-    sceClibPrintf("called SetGameOrientation with mode %i. forcing 2 instead. retaddr: 0x%x\n", mode, __builtin_return_address(0));
+    //sceClibPrintf("called SetGameOrientation with mode %i. forcing 2 instead. retaddr: 0x%x\n", mode, __builtin_return_address(0));
     SO_CONTINUE(void *, setGameOrientation_hook, this, 2);
 }
 
@@ -47,7 +47,12 @@ int _ZN11AbyssEngine6Engine15GetDisplayWidthEv(void * this) {
     return 960;
 }
 
+int * g_inputAllowedFlag;
+int * g_displayWidth;
+
 void so_patch(void) {
+    g_inputAllowedFlag = (int *)(so_mod.text_base + 0x0013e29c);
+    g_displayWidth = (int *)(so_mod.text_base + 0x0014105c);
     //android_app_write_cmd = (void *)(so_mod.text_base + 0x001c3494 + 1);
     //Rb_tree__find = (void *)so_symbol(&so_mod, "_ZNSt8_Rb_treeISsSt4pairIKSsjESt10_Select1stIS2_ESt4lessISsESaIS2_EE4findERS1_");
 

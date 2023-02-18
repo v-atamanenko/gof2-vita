@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <cstring>
+#include <psp2/kernel/clib.h>
 #include "../keycodes.h"
 #include "../AInput.h"
 
@@ -279,6 +280,10 @@ void sendTouchpadUp(float x, float y, int id) {
         removeById(&stickInputEvent, id);
     }
 }
+extern "C" {
+    extern int * g_inputAllowedFlag;
+    extern int * g_displayWidth;
+}
 
 void pollPad() {
     SceCtrlData pad;
@@ -298,6 +303,7 @@ void pollPad() {
 
             AInputEvent* aie = AInputEvent_create(&e);
             AInputQueue_enqueueEvent(inputQueue, aie);
+            sceClibPrintf("sending button down, flag %i w %i\n", *g_inputAllowedFlag, *g_displayWidth);
         } else if (released_buttons & i.sce_button) {
             inputEvent e;
             e.source = AINPUT_SOURCE_KEYBOARD; // Warning: some games may want distinction between AINPUT_SOURCE_KEYBOARD and AINPUT_SOURCE_DPAD
@@ -306,6 +312,7 @@ void pollPad() {
 
             AInputEvent* aie = AInputEvent_create(&e);
             AInputQueue_enqueueEvent(inputQueue, aie);
+            sceClibPrintf("sending button up\n");
         }
     }
 

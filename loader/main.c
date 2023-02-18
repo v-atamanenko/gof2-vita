@@ -79,6 +79,7 @@ int main(int argc, char*argv[]) {
 
     void (*setAPKPath)(JNIEnv *env, void *unused, jstring apk_path) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_setAPKPath");
     void (*SetDirectory)(JNIEnv *env, void *unused, jstring data_directory) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_SetDirectory");
+    void (*KeyBoardState)(JNIEnv *env, void *unused, int state) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_KeyBoardState");
 
     int (*ANativeActivity_onCreate)(ANativeActivity* activity) = (void*)so_symbol(&so_mod,"ANativeActivity_onCreate");
 
@@ -103,6 +104,8 @@ int main(int argc, char*argv[]) {
     AInputQueue * aInputQueue = AInputQueue_create();
     activity->callbacks->onInputQueueCreated(activity, aInputQueue);
     log_info("onInputQueueCreated() passed");
+
+    KeyBoardState(&jni, NULL, 1);
 
     ANativeWindow * aNativeWindow = ANativeWindow_create();
     activity->callbacks->onNativeWindowCreated(activity, aNativeWindow);

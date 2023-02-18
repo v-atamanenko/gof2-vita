@@ -333,7 +333,7 @@ so_default_dynlib default_dynlib[] = {
         { "fread", (uintptr_t)&fread },
         { "free", (uintptr_t)&free },
         { "fseek", (uintptr_t)&fseek },
-        { "fseeko", (uintptr_t)&fseeko_soloader },
+        { "fseeko", (uintptr_t)&fseeko },
         { "fstat", (uintptr_t)&fstat_soloader },
         { "ftell", (uintptr_t)&ftell },
         { "ftello", (uintptr_t)&ftello_soloader },
