@@ -36,7 +36,7 @@ enum {
 
 typedef struct {
     uint32_t sce_button;
-    uint32_t android_button;
+    int32_t android_button;
 } ButtonMapping;
 
 void controls_init(AInputQueue * queue);

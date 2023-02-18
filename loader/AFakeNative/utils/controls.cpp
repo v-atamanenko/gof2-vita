@@ -17,8 +17,22 @@
 #include "../keycodes.h"
 #include "../AInput.h"
 
+#define L_INNER_DEADZONE 0.10f
+#define R_INNER_DEADZONE 0.10f
 #define L_OUTER_DEADZONE 0.992f
 #define R_OUTER_DEADZONE 1.0f
+
+#define TOUCHPAD_X_RADIUS 180
+#define TOUCHPAD_Y_RADIUS 180
+
+#define TOUCHPAD_LX_BASE 180
+#define TOUCHPAD_LY_BASE 180
+#define TOUCHPAD_RX_BASE 786
+#define TOUCHPAD_RY_BASE 180
+
+#define LSTICK_PTR_ID 0
+#define RSTICK_PTR_ID 1
+
 
 AInputQueue * inputQueue;
 
@@ -55,7 +69,7 @@ void controls_init(AInputQueue * queue) {
 void * controls_poll(void * arg) {
     while (1) {
         pollTouch();
-        //pollPad();
+        pollPad();
         //pollAccel();
         sceKernelDelayThread(15000);
     }
@@ -130,7 +144,12 @@ void pollTouch() {
                 // Get global event state to have up-to-date indices and coordinates,
                 // but send a copy to not send MOVE too early / too often
                 inputEvent ev_ptrdown = ev;
-                ev_ptrdown.motion_action = (numPointersDown == 0) ? AMOTION_EVENT_ACTION_DOWN : AMOTION_EVENT_ACTION_POINTER_DOWN;
+                if (numPointersDown == 0) {
+                    ev_ptrdown.motion_action = AMOTION_EVENT_ACTION_DOWN;
+                } else {
+                    // For Pointer* actions, we have to set pointer index in respective bits
+                    ev_ptrdown.motion_action = AMOTION_EVENT_ACTION_POINTER_DOWN | (numPointersDown << AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+                }
 
                 numPointersDown++;
                 AInputEvent* aie = AInputEvent_create(&ev_ptrdown);
@@ -176,8 +195,14 @@ void pollTouch() {
                 if (idx != -1) {
                     ev.motion_x[idx] = x;
                     ev.motion_y[idx] = y;
-                    ev.motion_action = (numPointersDown == 1) ? AMOTION_EVENT_ACTION_UP
-                                                                      : AMOTION_EVENT_ACTION_POINTER_UP;
+
+                    if (numPointersDown == 1) {
+                        ev.motion_action = AMOTION_EVENT_ACTION_UP;
+                    } else {
+                        // For Pointer* actions, we have to set pointer index in respective bits
+                        ev.motion_action = AMOTION_EVENT_ACTION_POINTER_UP | (idx << AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+                    }
+
                     numPointersDown--;
 
                     AInputEvent* aie = AInputEvent_create(&ev);
@@ -206,66 +231,143 @@ static ButtonMapping mapping[] = {
 };
 
 uint32_t old_buttons = 0, current_buttons = 0, pressed_buttons = 0, released_buttons = 0;
+float lx = 0, ly = 0, rx = 0, ry = 0, lastLx = 0, lastLy = 0, lastRx = 0, lastRy = 0;
 
-float lastLx = 0.0f, lastLy = 0.0f, lastRx = 0.0f, lastRy = 0.0f;
-float lastLastLx = 0.0f, lastLastLy = 0.0f, lastLastRx = 0.0f, lastLastRy = 0.0f;
-float lx = 0.0f, ly = 0.0f, rx = 0.0f, ry = 0.0f;
-/*
+inputEvent stickInputEvent;
+int sticksDown = 0;
+
+void sendTouchpadDown(float x, float y, int id) {
+    stickInputEvent.source = AINPUT_SOURCE_TOUCHPAD;
+    stickInputEvent.motion_ptrcount = sticksDown + 1;
+    stickInputEvent.motion_x[sticksDown] = x;
+    stickInputEvent.motion_y[sticksDown] = y;
+    stickInputEvent.motion_ptridx[sticksDown] = id;
+
+    // Get global event state to have up-to-date indices and coordinates,
+    // but send a copy to not send MOVE too early / too often
+    inputEvent ev_ptrdown = stickInputEvent;
+    if (sticksDown == 0) {
+        ev_ptrdown.motion_action = AMOTION_EVENT_ACTION_DOWN;
+    } else {
+        // For Pointer* actions, we have to set pointer index in respective bits
+        ev_ptrdown.motion_action = AMOTION_EVENT_ACTION_POINTER_DOWN | (sticksDown << AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+    }
+
+    sticksDown++;
+    AInputEvent* aie = AInputEvent_create(&ev_ptrdown);
+    AInputQueue_enqueueEvent(inputQueue, aie);
+}
+
+void sendTouchpadUp(float x, float y, int id) {
+    int idx = getIdxById(&stickInputEvent, id);
+    if (idx != -1) {
+        stickInputEvent.motion_x[idx] = x;
+        stickInputEvent.motion_y[idx] = y;
+
+        if (sticksDown == 1) {
+            ev.motion_action = AMOTION_EVENT_ACTION_UP;
+        } else {
+            // For Pointer* actions, we have to set pointer index in respective bits
+            ev.motion_action = AMOTION_EVENT_ACTION_POINTER_UP | (idx << AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT);
+        }
+
+        sticksDown--;
+
+        AInputEvent *aie = AInputEvent_create(&stickInputEvent);
+        AInputQueue_enqueueEvent(inputQueue, aie);
+
+        removeById(&stickInputEvent, id);
+    }
+}
+
 void pollPad() {
     SceCtrlData pad;
     sceCtrlPeekBufferPositiveExt2(0, &pad, 1);
 
-    { // Gamepad buttons
-        old_buttons = current_buttons;
-        current_buttons = pad.buttons;
-        pressed_buttons = current_buttons & ~old_buttons;
-        released_buttons = ~current_buttons & old_buttons;
+    old_buttons = current_buttons;
+    current_buttons = pad.buttons;
+    pressed_buttons = current_buttons & ~old_buttons;
+    released_buttons = ~current_buttons & old_buttons;
 
-        for (int i = 0; i < sizeof(mapping) / sizeof(ButtonMapping); i++) {
-            if (pressed_buttons & mapping[i].sce_button) {
-                NativeOnKeyDown(&jni, (void *) 0x42424242, 600, mapping[i].android_button, 1);
-            }
-            if (released_buttons & mapping[i].sce_button) {
-                NativeOnKeyUp(&jni, (void *) 0x42424242, 600, mapping[i].android_button, 1);
-            }
+    for (auto & i : mapping) {
+        if (pressed_buttons & i.sce_button) {
+            inputEvent e;
+            e.source = AINPUT_SOURCE_KEYBOARD; // Warning: some games may want distinction between AINPUT_SOURCE_KEYBOARD and AINPUT_SOURCE_DPAD
+            e.keycode = i.android_button;
+            e.action = AKEY_EVENT_ACTION_DOWN;
+
+            AInputEvent* aie = AInputEvent_create(&e);
+            AInputQueue_enqueueEvent(inputQueue, aie);
+        } else if (released_buttons & i.sce_button) {
+            inputEvent e;
+            e.source = AINPUT_SOURCE_KEYBOARD; // Warning: some games may want distinction between AINPUT_SOURCE_KEYBOARD and AINPUT_SOURCE_DPAD
+            e.keycode = i.android_button;
+            e.action = AKEY_EVENT_ACTION_UP;
+
+            AInputEvent* aie = AInputEvent_create(&e);
+            AInputQueue_enqueueEvent(inputQueue, aie);
         }
     }
-
-    // Analog sticks
-
-    lx = coord_normalize(((float)pad.lx - 128.0f) / 128.0f, 0.10, L_OUTER_DEADZONE);
-    ly = coord_normalize(((float)pad.ly - 128.0f) / 128.0f, 0.10, L_OUTER_DEADZONE);
-    rx = coord_normalize(((float)pad.rx - 128.0f) / 128.0f, 0.10, R_OUTER_DEADZONE);
-    ry = coord_normalize(((float)pad.ry - 128.0f) / 128.0f, 0.10, R_OUTER_DEADZONE);
-
-    if ((lx == 0.f && ly == 0.f) && (lastLx == 0.f && lastLy == 0.f) && (lastLastLx != 0.f || lastLastLy != 0.f)) {
-        // lstick stop
-        NativeDispatchGenericMotionEvent(&jni, (void *) 0x42424242, lx, ly, rx, ry, 2);
-    }
-    if ((rx == 0.f && ry == 0.f) && (lastRx == 0.f && lastRy == 0.f) && (lastLastRx != 0.f || lastLastRy != 0.f)) {
-        // rstick stop
-        NativeDispatchGenericMotionEvent(&jni, (void *) 0x42424242, lx, ly, rx, ry, 3);
-    }
-    if ((lx != 0.f || ly != 0.f) || ((lx == 0.f && ly == 0.f) && (lastLx != 0.f || lastLy != 0.f))) {
-        // lstick move
-        NativeDispatchGenericMotionEvent(&jni, (void *) 0x42424242, lx, ly, rx, ry, 0);
-    }
-    if ((rx != 0.f || ry != 0.f) || ((rx == 0.f && ry == 0.f) && (lastRx != 0.f || lastRy != 0.f))) {
-        // rstick move
-        NativeDispatchGenericMotionEvent(&jni, (void *) 0x42424242, lx, ly, rx, ry, 1);
-    }
-
-    lastLastLx = lastLx;
-    lastLastLy = lastLy;
-    lastLastRx = lastRx;
-    lastLastRy = lastRy;
 
     lastLx = lx;
     lastLy = ly;
     lastRx = rx;
     lastRy = ry;
+
+    lx = coord_normalize(((float)pad.lx - 128.0f) / 128.0f, L_INNER_DEADZONE, L_OUTER_DEADZONE);
+    ly = coord_normalize(((float)pad.ly - 128.0f) / 128.0f, L_INNER_DEADZONE, L_OUTER_DEADZONE);
+    rx = coord_normalize(((float)pad.rx - 128.0f) / 128.0f, R_INNER_DEADZONE, R_OUTER_DEADZONE);
+    ry = coord_normalize(((float)pad.ry - 128.0f) / 128.0f, R_INNER_DEADZONE, R_OUTER_DEADZONE);
+
+    // Here we simulate how Xperia touchpads work. They are technically one wide
+    // touchpad. Let's say that left stick is always pointer id 0, and right stick is pointer if 1.
+    // Remember that ids and indexes are different things, so indexes still can be any.
+
+    if (lastLx == 0 && lastLy == 0 && (lx != 0 || ly != 0)) {
+        sendTouchpadDown(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
+    }
+
+    if (lastRx == 0 && lastRy == 0 && (rx != 0 || ry != 0)) {
+        sendTouchpadDown(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
+    }
+
+    int numPointersMoved = 0;
+
+    if ((lastLx != 0 || lastLy != 0) && (lx != 0 || ly != 0)) {
+        int idx = getIdxById(&ev, LSTICK_PTR_ID);
+        if (idx != -1) {
+            stickInputEvent.motion_x[idx] = TOUCHPAD_LX_BASE + (TOUCHPAD_X_RADIUS * lx);
+            stickInputEvent.motion_y[idx] = TOUCHPAD_LY_BASE + (TOUCHPAD_Y_RADIUS * ly);
+            numPointersMoved++;
+        }
+    }
+
+    if ((lastRx != 0 || lastRy != 0) && (rx != 0 || ry != 0)) {
+        int idx = getIdxById(&ev, RSTICK_PTR_ID);
+        if (idx != -1) {
+            stickInputEvent.motion_x[idx] = TOUCHPAD_RX_BASE + (TOUCHPAD_X_RADIUS * rx);
+            stickInputEvent.motion_y[idx] = TOUCHPAD_RY_BASE + (TOUCHPAD_Y_RADIUS * ry);
+            numPointersMoved++;
+        }
+    }
+
+    if (numPointersMoved > 0) {
+        stickInputEvent.motion_action = AMOTION_EVENT_ACTION_MOVE;
+
+        AInputEvent* aie = AInputEvent_create(&stickInputEvent);
+        AInputQueue_enqueueEvent(inputQueue, aie);
+    }
+
+    if ((lastLx != 0 || lastLy != 0) && (lx == 0 && ly == 0)) {
+        sendTouchpadUp(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
+    }
+
+    if ((lastRx != 0 || lastRy != 0) && (rx == 0 && ry == 0)) {
+        sendTouchpadUp(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
+    }
 }
 
+/*
 void pollAccel() {
     SceMotionSensorState sensor;
     sceMotionGetSensorState(&sensor, 1);
