@@ -38,7 +38,6 @@ void gl_swap() {
 
 void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
                         const GLint *_length) {
-    sceClibPrintf("glShaderSource called\n");
     int length;
 
     if (!string) {
@@ -95,10 +94,8 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
 
         glShaderBinary(1, &shader, 0, shaderBuf, (int32_t)shaderSize);
 
-        sceClibPrintf("axa\n");
         if(shaderBuf) free(shaderBuf);
     }
-    sceClibPrintf("taxa\n");
     free(sha_name);
 }
 

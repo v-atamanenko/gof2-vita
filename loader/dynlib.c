@@ -202,17 +202,6 @@ void glMatrixMode_fake(uint32_t mode) {
     sceClibPrintf("glMatrixMode(0x%x), return addr: 0x%x\n", mode, __builtin_return_address(0));
     glMatrixMode(mode);
 }
-
-GLint glGetUniformLocation_fake(GLuint prog, const GLchar *name) {
-    sceClibPrintf("glGetUniformLocation(0x%x, 0x%x), return addr: 0x%x\n", prog, name, __builtin_return_address(0));
-    return glGetUniformLocation(prog, name);
-
-}
-
-GLint glGetAttribLocation_fake(GLuint prog, const GLchar *name) {
-    sceClibPrintf("glGetAttribLocation(0x%x, 0x%x), return addr: 0x%x\n", prog, name, __builtin_return_address(0));
-    return glGetAttribLocation(prog, name);
-}
 uint32_t glCreateProgram_fake() {
     sceClibPrintf("glCreateProgram(), return addr: 0x%x\n", __builtin_return_address(0));
     return glCreateProgram();
@@ -350,8 +339,8 @@ so_default_dynlib default_dynlib[] = {
         { "glClearColor", (uintptr_t)&glClearColor },
         { "glCompileShader", (uintptr_t)&ret0 },
         { "glCompressedTexImage2D", (uintptr_t)&glCompressedTexImage2D },
-        { "glCreateProgram", (uintptr_t)&glCreateProgram_fake },
-        { "glCreateShader", (uintptr_t)&glCreateShader_fake },
+        { "glCreateProgram", (uintptr_t)&glCreateProgram },
+        { "glCreateShader", (uintptr_t)&glCreateShader },
         { "glCullFace", (uintptr_t)&glCullFace },
         { "glDeleteBuffers", (uintptr_t)&glDeleteBuffers },
         { "glDeleteProgram", (uintptr_t)&glDeleteProgram },
@@ -365,7 +354,7 @@ so_default_dynlib default_dynlib[] = {
         { "glEnableVertexAttribArray", (uintptr_t)&glEnableVertexAttribArray },
         { "glGenBuffers", (uintptr_t)&glGenBuffers },
         { "glGenTextures", (uintptr_t)&glGenTextures },
-        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation_fake },
+        { "glGetAttribLocation", (uintptr_t)&glGetAttribLocation },
         { "glGetError", (uintptr_t)&glGetError },
         { "glGetIntegerv", (uintptr_t)&glGetIntegerv },
         { "glGetProgramInfoLog", (uintptr_t)&glGetProgramInfoLog },
@@ -373,7 +362,7 @@ so_default_dynlib default_dynlib[] = {
         { "glGetShaderInfoLog", (uintptr_t)&glGetShaderInfoLog },
         { "glGetShaderiv", (uintptr_t)&glGetShaderiv },
         { "glGetString", (uintptr_t)&glGetString },
-        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation_fake },
+        { "glGetUniformLocation", (uintptr_t)&glGetUniformLocation },
         { "glHint", (uintptr_t)&glHint_fake },
         { "glLineWidth", (uintptr_t)&glLineWidth },
         { "glLinkProgram", (uintptr_t)&glLinkProgram },

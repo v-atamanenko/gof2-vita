@@ -18,7 +18,7 @@ endif()
 if(DEFINED ENV{PARSECOREPATH})
   set(PARSECOREPATH "$ENV{PARSECOREPATH}")
 else()
-  set(PARSECOREPATH "/home/v/Repos/vitasdk/vita-parse-core/main.py")
+  set(PARSECOREPATH "/Users/v/Repos/vitasdk/vita-parse-core/main.py")
   message(WARNING "PARSECOREPATH environment variable is not set, using default path ${PARSECOREPATH}")
 endif()
 

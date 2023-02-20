@@ -22,6 +22,7 @@
 #include <string.h>
 #include "reimpl/io.h"
 #include "utils/glutil.h"
+#include "AFakeNative/keycodes.h"
 
 int _ZN11AbyssEngine6Engine10ShaderInitEv(int x) {
     sceClibPrintf("called _ZN11AbyssEngine6Engine10ShaderInitEv. retaddr: 0x%x\n", __builtin_return_address(0));
@@ -47,8 +48,14 @@ int _ZN11AbyssEngine6Engine15GetDisplayWidthEv(void * this) {
     return 960;
 }
 
+#include "patch/controls_fix.c"
+
+
+
 int * g_inputAllowedFlag;
 int * g_displayWidth;
+
+
 
 void so_patch(void) {
     g_inputAllowedFlag = (int *)(so_mod.text_base + 0x0013e29c);
@@ -58,9 +65,12 @@ void so_patch(void) {
 
     //hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine6Engine10ShaderInitEv"), (uintptr_t)_ZN11AbyssEngine6Engine10ShaderInitEv);
     //hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine14ES2LoadProgramEPKcS1_"), (uintptr_t)_ZN11AbyssEngine14ES2LoadProgramEPKcS1_);
-    setGameOrientation_hook = hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE"), (uintptr_t)_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE);
     hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine6Engine16GetDisplayHeightEv"), (uintptr_t)_ZN11AbyssEngine6Engine16GetDisplayHeightEv);
     hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine6Engine15GetDisplayWidthEv"), (uintptr_t)_ZN11AbyssEngine6Engine15GetDisplayWidthEv);
+
+    setGameOrientation_hook = hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE"), (uintptr_t)_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE);
+
+    patch__controls_fix();
     //uint16_t nop = 0xbf00;
     //kuKernelCpuUnrestrictedMemcpy((void*)(so_mod.text_base + 0x00142968), &nop, sizeof(nop));
 }

@@ -303,7 +303,6 @@ void pollPad() {
 
             AInputEvent* aie = AInputEvent_create(&e);
             AInputQueue_enqueueEvent(inputQueue, aie);
-            sceClibPrintf("sending button down, flag %i w %i\n", *g_inputAllowedFlag, *g_displayWidth);
         } else if (released_buttons & i.sce_button) {
             inputEvent e;
             e.source = AINPUT_SOURCE_KEYBOARD; // Warning: some games may want distinction between AINPUT_SOURCE_KEYBOARD and AINPUT_SOURCE_DPAD
@@ -312,7 +311,6 @@ void pollPad() {
 
             AInputEvent* aie = AInputEvent_create(&e);
             AInputQueue_enqueueEvent(inputQueue, aie);
-            sceClibPrintf("sending button up\n");
         }
     }
 
@@ -341,7 +339,7 @@ void pollPad() {
     int numPointersMoved = 0;
 
     if ((lastLx != 0 || lastLy != 0) && (lx != 0 || ly != 0)) {
-        int idx = getIdxById(&ev, LSTICK_PTR_ID);
+        int idx = getIdxById(&stickInputEvent, LSTICK_PTR_ID);
         if (idx != -1) {
             stickInputEvent.motion_x[idx] = TOUCHPAD_LX_BASE + (TOUCHPAD_X_RADIUS * lx);
             stickInputEvent.motion_y[idx] = TOUCHPAD_LY_BASE + (TOUCHPAD_Y_RADIUS * ly);
@@ -350,7 +348,7 @@ void pollPad() {
     }
 
     if ((lastRx != 0 || lastRy != 0) && (rx != 0 || ry != 0)) {
-        int idx = getIdxById(&ev, RSTICK_PTR_ID);
+        int idx = getIdxById(&stickInputEvent, RSTICK_PTR_ID);
         if (idx != -1) {
             stickInputEvent.motion_x[idx] = TOUCHPAD_RX_BASE + (TOUCHPAD_X_RADIUS * rx);
             stickInputEvent.motion_y[idx] = TOUCHPAD_RY_BASE + (TOUCHPAD_Y_RADIUS * ry);
