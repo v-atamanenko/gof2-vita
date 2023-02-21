@@ -32,6 +32,7 @@ so_hook OnTouchBegin_hook;
 so_hook OnTouchEnd_hook;
 
 void OnTouchBegin(void * this, int x, int y, int keycode) {
+
     SO_CONTINUE(void *, OnTouchBegin_hook, this, x, y, keycode);
 }
 
@@ -81,7 +82,7 @@ void keyPressed(int keycode) {
                 OnTouchBegin(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchBegin(appManager, *Globals__fast_forward_x - 10, *Globals__fast_forward_y, keycode);
+                OnTouchBegin(appManager, 250, 480, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchBegin(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
@@ -131,7 +132,7 @@ void keyReleased(int keycode) {
                 OnTouchEnd(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchEnd(appManager, *Globals__fast_forward_x, *Globals__fast_forward_y, keycode);
+                OnTouchEnd(appManager, 250, 480, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchEnd(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
