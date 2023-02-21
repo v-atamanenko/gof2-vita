@@ -18,18 +18,18 @@
 #include "../keycodes.h"
 #include "../AInput.h"
 
-#define L_INNER_DEADZONE 0.10f
-#define R_INNER_DEADZONE 0.10f
-#define L_OUTER_DEADZONE 0.992f
-#define R_OUTER_DEADZONE 1.0f
+#define L_INNER_DEADZONE 0.11f
+#define R_INNER_DEADZONE 0.11f
+#define L_OUTER_DEADZONE 0.99f
+#define R_OUTER_DEADZONE 0.99f
 
 #define TOUCHPAD_X_RADIUS 180
 #define TOUCHPAD_Y_RADIUS 180
 
-#define TOUCHPAD_LX_BASE 180
-#define TOUCHPAD_LY_BASE 180
-#define TOUCHPAD_RX_BASE 786
-#define TOUCHPAD_RY_BASE 180
+#define TOUCHPAD_LX_BASE TOUCHPAD_X_RADIUS
+#define TOUCHPAD_LY_BASE TOUCHPAD_Y_RADIUS
+#define TOUCHPAD_RX_BASE ( 960 - TOUCHPAD_LX_BASE )
+#define TOUCHPAD_RY_BASE TOUCHPAD_LY_BASE
 
 #define LSTICK_PTR_ID 0
 #define RSTICK_PTR_ID 1
@@ -42,8 +42,7 @@ float lerp(float x1, float y1, float x3, float y3, float x2) {
 }
 
 float coord_normalize(float val, float deadzone_min, float deadzone_max) {
-    float sign = 1.0f;
-    if (val < 0) sign = -1.0f;
+    float sign = (val < 0) ? -1.0f : 1.0f;
 
     if (fabsf(val) < deadzone_min) return 0.f;
     if (fabsf(val) > deadzone_max) return 1.0f*sign;
@@ -55,15 +54,13 @@ void controls_init(AInputQueue * queue) {
     sceCtrlSetSamplingModeExt(SCE_CTRL_MODE_ANALOG_WIDE);
     sceTouchSetSamplingState(SCE_TOUCH_PORT_FRONT, SCE_TOUCH_SAMPLING_STATE_START);
 
-    sceMotionStartSampling();
-
     inputQueue = queue;
 
     pthread_t t;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setstacksize(&attr, 32*1024);
-    pthread_create(&t, &attr, controls_poll, NULL);
+    pthread_create(&t, &attr, controls_poll, nullptr);
     pthread_detach(t);
 }
 
@@ -81,30 +78,30 @@ SceTouchData touch;
 inputEvent ev;
 int numPointersDown = 0;
 
-int getIdxById(inputEvent * ev, int id) {
-    for (int i = 0; i < ev->motion_ptrcount; ++i) {
-        if (ev->motion_ptridx[i] == id) {
+int getIdxById(inputEvent * e, int id) {
+    for (int i = 0; i < e->motion_ptrcount; ++i) {
+        if (e->motion_ptridx[i] == id) {
             return i;
         }
     }
     return -1;
 }
 
-void removeById(inputEvent * ev, int id) {
-    int idx = getIdxById(ev, id);
+void removeById(inputEvent * e, int id) {
+    int idx = getIdxById(e, id);
 
-    inputEvent ev_backup = *ev;
-    memset(ev->motion_ptridx, 0, sizeof(ev->motion_ptridx));
-    memset(ev->motion_x, 0, sizeof(ev->motion_x));
-    memset(ev->motion_y, 0, sizeof(ev->motion_y));
-    ev->motion_ptrcount--;
+    inputEvent ev_backup = *e;
+    memset(e->motion_ptridx, 0, sizeof(e->motion_ptridx));
+    memset(e->motion_x, 0, sizeof(e->motion_x));
+    memset(e->motion_y, 0, sizeof(e->motion_y));
+    e->motion_ptrcount--;
 
     int u = 0;
     for (int i = 0; i < ev_backup.motion_ptrcount; ++i) {
         if (i == idx) continue;
-        ev->motion_ptridx[u] = ev_backup.motion_ptridx[i];
-        ev->motion_x[u] = ev_backup.motion_x[i];
-        ev->motion_y[u] = ev_backup.motion_y[i];
+        e->motion_ptridx[u] = ev_backup.motion_ptridx[i];
+        e->motion_x[u] = ev_backup.motion_x[i];
+        e->motion_y[u] = ev_backup.motion_y[i];
         u++;
     }
 }
@@ -280,10 +277,6 @@ void sendTouchpadUp(float x, float y, int id) {
         removeById(&stickInputEvent, id);
     }
 }
-extern "C" {
-    extern int * g_inputAllowedFlag;
-    extern int * g_displayWidth;
-}
 
 void pollPad() {
     SceCtrlData pad;
@@ -320,12 +313,12 @@ void pollPad() {
     lastRy = ry;
 
     lx = coord_normalize(((float)pad.lx - 128.0f) / 128.0f, L_INNER_DEADZONE, L_OUTER_DEADZONE);
-    ly = coord_normalize(((float)pad.ly - 128.0f) / 128.0f, L_INNER_DEADZONE, L_OUTER_DEADZONE);
+    ly = coord_normalize(((float)pad.ly - 128.0f) / 128.0f, L_INNER_DEADZONE, L_OUTER_DEADZONE) * (-1);
     rx = coord_normalize(((float)pad.rx - 128.0f) / 128.0f, R_INNER_DEADZONE, R_OUTER_DEADZONE);
-    ry = coord_normalize(((float)pad.ry - 128.0f) / 128.0f, R_INNER_DEADZONE, R_OUTER_DEADZONE);
+    ry = coord_normalize(((float)pad.ry - 128.0f) / 128.0f, R_INNER_DEADZONE, R_OUTER_DEADZONE) * (-1);
 
     // Here we simulate how Xperia touchpads work. They are technically one wide
-    // touchpad. Let's say that left stick is always pointer id 0, and right stick is pointer if 1.
+    // touchpad. Let's say that left stick is always pointer id 0, and right stick is pointer id 1.
     // Remember that ids and indexes are different things, so indexes still can be any.
 
     if (lastLx == 0 && lastLy == 0 && (lx != 0 || ly != 0)) {

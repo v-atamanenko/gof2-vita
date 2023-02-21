@@ -10,12 +10,186 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <sys/types.h>
 
 #include "ALooper.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// [Non-standard]: Max count of sensors supported by a manager/queue
+#define ASENSOR_COUNT_MAX 48
+
+/**
+ * Sensor types.
+ *
+ * See
+ * [android.hardware.SensorEvent#values](https://developer.android.com/reference/android/hardware/SensorEvent.html#values)
+ * for detailed explanations of the data returned for each of these types.
+ */
+enum {
+    /**
+     * Invalid sensor type. Returned by {@link ASensor_getType} as error value.
+     */
+    ASENSOR_TYPE_INVALID = -1,
+    /**
+     * {@link ASENSOR_TYPE_ACCELEROMETER}
+     * reporting-mode: continuous
+     *
+     *  All values are in SI units (m/s^2) and measure the acceleration of the
+     *  device minus the force of gravity.
+     */
+    ASENSOR_TYPE_ACCELEROMETER       = 1,
+    /**
+     * {@link ASENSOR_TYPE_MAGNETIC_FIELD}
+     * reporting-mode: continuous
+     *
+     *  All values are in micro-Tesla (uT) and measure the geomagnetic
+     *  field in the X, Y and Z axis.
+     */
+    ASENSOR_TYPE_MAGNETIC_FIELD      = 2,
+    /**
+     * {@link ASENSOR_TYPE_GYROSCOPE}
+     * reporting-mode: continuous
+     *
+     *  All values are in radians/second and measure the rate of rotation
+     *  around the X, Y and Z axis.
+     */
+    ASENSOR_TYPE_GYROSCOPE           = 4,
+    /**
+     * {@link ASENSOR_TYPE_LIGHT}
+     * reporting-mode: on-change
+     *
+     * The light sensor value is returned in SI lux units.
+     */
+    ASENSOR_TYPE_LIGHT               = 5,
+    /**
+     * {@link ASENSOR_TYPE_PRESSURE}
+     *
+     * The pressure sensor value is returned in hPa (millibar).
+     */
+    ASENSOR_TYPE_PRESSURE            = 6,
+    /**
+     * {@link ASENSOR_TYPE_PROXIMITY}
+     * reporting-mode: on-change
+     *
+     * The proximity sensor which turns the screen off and back on during calls is the
+     * wake-up proximity sensor. Implement wake-up proximity sensor before implementing
+     * a non wake-up proximity sensor. For the wake-up proximity sensor set the flag
+     * SENSOR_FLAG_WAKE_UP.
+     * The value corresponds to the distance to the nearest object in centimeters.
+     */
+    ASENSOR_TYPE_PROXIMITY           = 8,
+    /**
+     * {@link ASENSOR_TYPE_GRAVITY}
+     *
+     * All values are in SI units (m/s^2) and measure the direction and
+     * magnitude of gravity. When the device is at rest, the output of
+     * the gravity sensor should be identical to that of the accelerometer.
+     */
+    ASENSOR_TYPE_GRAVITY             = 9,
+    /**
+     * {@link ASENSOR_TYPE_LINEAR_ACCELERATION}
+     * reporting-mode: continuous
+     *
+     *  All values are in SI units (m/s^2) and measure the acceleration of the
+     *  device not including the force of gravity.
+     */
+    ASENSOR_TYPE_LINEAR_ACCELERATION = 10,
+    /**
+     * {@link ASENSOR_TYPE_ROTATION_VECTOR}
+     */
+    ASENSOR_TYPE_ROTATION_VECTOR     = 11,
+    /**
+     * {@link ASENSOR_TYPE_RELATIVE_HUMIDITY}
+     *
+     * The relative humidity sensor value is returned in percent.
+     */
+    ASENSOR_TYPE_RELATIVE_HUMIDITY   = 12,
+    /**
+     * {@link ASENSOR_TYPE_AMBIENT_TEMPERATURE}
+     *
+     * The ambient temperature sensor value is returned in Celcius.
+     */
+    ASENSOR_TYPE_AMBIENT_TEMPERATURE = 13,
+    /**
+     * {@link ASENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED}
+     */
+    ASENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED = 14,
+    /**
+     * {@link ASENSOR_TYPE_GAME_ROTATION_VECTOR}
+     */
+    ASENSOR_TYPE_GAME_ROTATION_VECTOR = 15,
+    /**
+     * {@link ASENSOR_TYPE_GYROSCOPE_UNCALIBRATED}
+     */
+    ASENSOR_TYPE_GYROSCOPE_UNCALIBRATED = 16,
+    /**
+     * {@link ASENSOR_TYPE_SIGNIFICANT_MOTION}
+     */
+    ASENSOR_TYPE_SIGNIFICANT_MOTION = 17,
+    /**
+     * {@link ASENSOR_TYPE_STEP_DETECTOR}
+     */
+    ASENSOR_TYPE_STEP_DETECTOR = 18,
+    /**
+     * {@link ASENSOR_TYPE_STEP_COUNTER}
+     */
+    ASENSOR_TYPE_STEP_COUNTER = 19,
+    /**
+     * {@link ASENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR}
+     */
+    ASENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR = 20,
+    /**
+     * {@link ASENSOR_TYPE_HEART_RATE}
+     */
+    ASENSOR_TYPE_HEART_RATE = 21,
+    /**
+     * {@link ASENSOR_TYPE_POSE_6DOF}
+     */
+    ASENSOR_TYPE_POSE_6DOF = 28,
+    /**
+     * {@link ASENSOR_TYPE_STATIONARY_DETECT}
+     */
+    ASENSOR_TYPE_STATIONARY_DETECT = 29,
+    /**
+     * {@link ASENSOR_TYPE_MOTION_DETECT}
+     */
+    ASENSOR_TYPE_MOTION_DETECT = 30,
+    /**
+     * {@link ASENSOR_TYPE_HEART_BEAT}
+     */
+    ASENSOR_TYPE_HEART_BEAT = 31,
+    /**
+     * {@link ASENSOR_TYPE_LOW_LATENCY_OFFBODY_DETECT}
+     */
+    ASENSOR_TYPE_LOW_LATENCY_OFFBODY_DETECT = 34,
+    /**
+     * {@link ASENSOR_TYPE_ACCELEROMETER_UNCALIBRATED}
+     */
+    ASENSOR_TYPE_ACCELEROMETER_UNCALIBRATED = 35,
+};
+
+/*
+ * Sensor Reporting Modes.
+ */
+enum {
+    AREPORTING_MODE_CONTINUOUS = 0,
+    AREPORTING_MODE_ON_CHANGE = 1,
+    AREPORTING_MODE_ONE_SHOT = 2,
+    AREPORTING_MODE_SPECIAL_TRIGGER = 3
+};
+/*
+ * A few useful constants
+ */
+/* Earth's gravity in m/s^2 */
+#define ASENSOR_STANDARD_GRAVITY            (9.80665f)
+/* Maximum magnetic field on Earth's surface in uT */
+#define ASENSOR_MAGNETIC_FIELD_EARTH_MAX    (60.0f)
+/* Minimum magnetic field on Earth's surface in uT*/
+#define ASENSOR_MAGNETIC_FIELD_EARTH_MIN    (30.0f)
 
 /**
  * A sensor event.
@@ -347,6 +521,19 @@ int ASensorEventQueue_disableSensor(ASensorEventQueue* queue, ASensor const* sen
 ssize_t ASensorEventQueue_getEvents(ASensorEventQueue* queue, ASensorEvent* events, size_t count);
 
 /**
+ * [Non-standard]: Enqueue sensor event
+ */
+void ASensorEventQueue_enqueueEvent(ASensorEventQueue * queue, ASensorEvent * event);
+
+/**
+ * [Non-standard]: Get enabled sensors for the queue
+ *
+ * Writes array of enabled sensors to `sensors` arg.
+ * `sensors` must be able to contain no less than ASENSOR_COUNT_MAX integers
+ */
+void ASensorEventQueue_getEnabledSensors(ASensorEventQueue * queue, ASensor * sensors[ASENSOR_COUNT_MAX]);
+
+/**
  * Sets the delivery rate of events in microseconds for the given sensor.
  *
  * This function has to be called after {@link ASensorEventQueue_enableSensor}.
@@ -389,6 +576,56 @@ ASensor const* ASensorManager_getDefaultSensor(ASensorManager* manager, int type
  *
  */
 ASensorManager* ASensorManager_getInstance();
+
+/*****************************************************************************/
+/*
+ * Returns this sensor's name (non localized)
+ */
+const char* ASensor_getName(ASensor const* sensor);
+/*
+ * Returns this sensor's vendor's name (non localized)
+ */
+const char* ASensor_getVendor(ASensor const* sensor);
+/*
+ * Return this sensor's type
+ */
+int ASensor_getType(ASensor const* sensor);
+/*
+ * Returns this sensors's resolution
+ */
+float ASensor_getResolution(ASensor const* sensor);
+/*
+ * Returns the minimum delay allowed between events in microseconds.
+ * A value of zero means that this sensor doesn't report events at a
+ * constant rate, but rather only when a new data is available.
+ */
+int ASensor_getMinDelay(ASensor const* sensor);
+/*
+ * Returns the maximum size of batches for this sensor. Batches will often be
+ * smaller, as the hardware fifo might be used for other sensors.
+ */
+int ASensor_getFifoMaxEventCount(ASensor const* sensor);
+/*
+ * Returns the hardware batch fifo size reserved to this sensor.
+ */
+int ASensor_getFifoReservedEventCount(ASensor const* sensor);
+/*
+ * Returns this sensor's string type.
+ */
+const char* ASensor_getStringType(ASensor const* sensor);
+/*
+ * Returns the reporting mode for this sensor. One of AREPORTING_MODE_* constants.
+ */
+int ASensor_getReportingMode(ASensor const* sensor);
+/*
+ * Returns true if this is a wake up sensor, false otherwise.
+ */
+bool ASensor_isWakeUpSensor(ASensor const* sensor);
+/*
+ * [Non-standard] Returns this sensor's handle.
+ */
+int ASensor_getHandle(ASensor const* sensor);
+
 
 #ifdef __cplusplus
 };
