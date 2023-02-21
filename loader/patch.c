@@ -20,6 +20,8 @@
 #include <malloc.h>
 #include <psp2/kernel/threadmgr.h>
 #include <string.h>
+#include <psp2/kernel/processmgr.h>
+#include <math.h>
 #include "reimpl/io.h"
 #include "utils/glutil.h"
 #include "AFakeNative/keycodes.h"
@@ -55,7 +57,19 @@ int _ZN11AbyssEngine6Engine15GetDisplayWidthEv(void * this) {
 int * g_inputAllowedFlag;
 int * g_displayWidth;
 
+void quitGame(int unused) {
+    sceKernelExitProcess(0);
+}
 
+so_hook NewsTicker_Constructor_hook;
+void NewsTicker_Constructor(void* this, int posX, int posY, int width, int param4, int param5) {
+    // In some parts of the game, it still thinks of portrait orientation as primary,
+    // thus we need to invert to multiply horizontal coordinates by the aspect ratio here
+    int posX_real = floorf((float)posX * (960.f / 544.f));
+    int width_real = floorf((float)width * (960.f / 544.f));
+    sceClibPrintf("passing %i %i instead of %i %i\n", posX_real, width_real, posX, width);
+    SO_CONTINUE(void *, NewsTicker_Constructor_hook, this, posX_real, posY, width_real, param4, param5 );
+}
 
 void so_patch(void) {
     g_inputAllowedFlag = (int *)(so_mod.text_base + 0x0013e29c);
@@ -68,7 +82,10 @@ void so_patch(void) {
     hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine6Engine16GetDisplayHeightEv"), (uintptr_t)_ZN11AbyssEngine6Engine16GetDisplayHeightEv);
     hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine6Engine15GetDisplayWidthEv"), (uintptr_t)_ZN11AbyssEngine6Engine15GetDisplayWidthEv);
 
+    hook_addr(so_symbol(&so_mod, "ndk23_ndkDone"), (uintptr_t)quitGame);
+
     setGameOrientation_hook = hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE"), (uintptr_t)_ZN11AbyssEngine11PaintCanvas18SetGameOrientationENS_13LandscapeModeE);
+    NewsTicker_Constructor_hook = hook_addr(so_symbol(&so_mod, "_ZN10NewsTickerC1Eiiiii"), (uintptr_t) NewsTicker_Constructor);
 
     patch__controls_fix();
     //uint16_t nop = 0xbf00;
