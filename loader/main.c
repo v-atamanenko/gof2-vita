@@ -70,11 +70,6 @@ void setCountry() {
 int main(int argc, char*argv[]) {
     soloader_init_all();
 
-    //vglSetParamBufferSize(8 * 1024 * 1024);
-    //vglUseCachedMem(GL_TRUE);
-    //vglInitWithCustomThreshold(0, 960, 544, 256 * 1024 * 1024, 0, 0, 0, SCE_GXM_MULTISAMPLE_4X);
-    //log_info("gl_init() passed");
-
     int (*JNI_OnLoad)(JavaVM* jvm) = (void*)so_symbol(&so_mod,"JNI_OnLoad");
 
     void (*setAPKPath)(JNIEnv *env, void *unused, jstring apk_path) = (void*)so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_setAPKPath");
@@ -99,7 +94,8 @@ int main(int argc, char*argv[]) {
     ANativeActivity_onCreate(activity);
     log_info("ANativeActivity_onCreate() passed");
 
-    logv_info("onInputQueueCreated is %p, onNativeWindowCreated is %p\n", activity->callbacks->onInputQueueCreated, activity->callbacks->onNativeWindowCreated);
+    activity->callbacks->onStart(activity);
+    log_info("onStart() passed");
 
     AInputQueue * aInputQueue = AInputQueue_create();
     activity->callbacks->onInputQueueCreated(activity, aInputQueue);

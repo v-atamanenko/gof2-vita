@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2021 Andy Nguyen
  * Copyright (C) 2021 Rinnegatamante
- * Copyright (C) 2022 Volodymyr Atamanenko
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -41,10 +41,10 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
     int length;
 
     if (!string) {
-        sceClibPrintf("string == null\n");
+        log_error("Shader source string is NULL");
         return;
     } else if (!*string) {
-        sceClibPrintf("*string == null\n");
+        log_error("Shader source *string is NULL");
         return;
     }
 
@@ -102,26 +102,16 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor) {
     logv_info("[GL] eglInitialize(0x%x)\n", (int)dpy);
 
-    //vglUseVram(GL_FALSE);
-    //vglUseCachedMem(GL_TRUE);
     vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
-    if (major) {
-        *major = 2;
-    }
-    if (minor) {
-        *minor = 2;
-    }
+
+    if (major) *major = 2;
+    if (minor) *minor = 2;
 
     return EGL_TRUE;
 }
 
-
-
 EGLBoolean eglQuerySurface(EGLDisplay dpy, EGLSurface eglSurface, EGLint attribute, EGLint *value)
 {
-    fprintf(stderr, "!!! eglQuerySurface (0x%x)\n", attribute);
-    // Parameters involved in queries of EGL_(HORIZONTAL|VERTICAL)_RESOLUTION
-    float currWidth, currHeight, scaledResolution, effectiveSurfaceDPI;
     EGLBoolean ret = EGL_TRUE;
     switch (attribute) {
         case EGL_CONFIG_ID:
@@ -188,7 +178,6 @@ EGLBoolean eglGetConfigAttrib(EGLDisplay display,
                               EGLConfig config,
                               EGLint attribute,
                               EGLint * value) {
-    printf("!!eglGetConfigAttrib 0x%x\n", attribute);
     switch (attribute) {
         case EGL_ALPHA_SIZE: {
             *value = 8;

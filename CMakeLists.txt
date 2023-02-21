@@ -88,6 +88,7 @@ add_executable(so_loader
         loader/AFakeNative/AConfiguration.cpp
         loader/AFakeNative/AInput.cpp
         loader/AFakeNative/utils/controls.cpp
+        loader/AFakeNative/utils/sensors.cpp
         loader/AFakeNative/ANativeActivity.cpp)
 
 #set(EXCEPTION_SAFETY 1)
@@ -116,6 +117,7 @@ target_link_libraries(so_loader
         taihen_stub
         SceShaccCg_stub
         OpenSLES
+        OpenAL
         sndfile
         vorbis
         ogg
