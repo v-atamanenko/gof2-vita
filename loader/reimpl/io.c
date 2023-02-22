@@ -1,18 +1,17 @@
 /*
  * reimpl/io.c
  *
- * Wrappers and implementations for some of IO functions for optimization
- * and bridging to SceLibc.
+ * Wrappers and implementations for some of the IO functions.
  *
  * Copyright (C) 2021 Andy Nguyen
  * Copyright (C) 2022 Rinnegatamante
- * Copyright (C) 2022 Volodymyr Atamanenko
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "io.h"
+#include "reimpl/io.h"
 
 #include <string.h>
 #include <sys/stat.h>
@@ -21,16 +20,67 @@
 #include <dirent.h>
 #include <psp2/kernel/threadmgr.h>
 
-#include "utils/utils.h"
 #include "utils/logger.h"
+
+#define MUSL_O_WRONLY         01
+#define MUSL_O_RDWR           02
+#define MUSL_O_CREAT        0100
+#define MUSL_O_EXCL         0200
+#define MUSL_O_TRUNC       01000
+#define MUSL_O_APPEND      02000
+#define MUSL_O_NONBLOCK    04000
+
+int oflags_newlib_to_oflags_musl(int flags)
+{
+    int out = 0;
+    if (flags & MUSL_O_RDWR)
+        out |= O_RDWR;
+    else if (flags & MUSL_O_WRONLY)
+        out |= O_WRONLY;
+    else
+        out |= O_RDONLY;
+    if (flags & MUSL_O_NONBLOCK)
+        out |= O_NONBLOCK;
+    if (flags & MUSL_O_APPEND)
+        out |= O_APPEND;
+    if (flags & MUSL_O_CREAT)
+        out |= O_CREAT;
+    if (flags & MUSL_O_TRUNC)
+        out |= O_TRUNC;
+    if (flags & MUSL_O_EXCL)
+        out |= O_EXCL;
+    return out;
+}
 
 dirent64_bionic * dirent_newlib_to_dirent_bionic(struct dirent* dirent_newlib) {
     dirent64_bionic * ret = malloc(sizeof(dirent64_bionic));
-    strcpy(ret->d_name, dirent_newlib->d_name);
+    strncpy(ret->d_name, dirent_newlib->d_name, sizeof(ret->d_name));
     ret->d_off = 0;
     ret->d_reclen = 0;
     ret->d_type = SCE_S_ISDIR(dirent_newlib->d_stat.st_mode) ? DT_DIR : DT_REG;
     return ret;
+}
+
+void stat_newlib_to_stat_bionic(struct stat * src, stat64_bionic * dst) {
+    if (!src) return;
+    if (!dst) dst = malloc(sizeof(stat64_bionic));
+
+    dst->st_dev = src->st_dev;
+    dst->st_ino = src->st_ino;
+    dst->st_mode = src->st_mode;
+    dst->st_nlink = src->st_nlink;
+    dst->st_uid = src->st_uid;
+    dst->st_gid = src->st_gid;
+    dst->st_rdev = src->st_rdev;
+    dst->st_size = src->st_size;
+    dst->st_blksize = src->st_blksize;
+    dst->st_blocks = src->st_blocks;
+    dst->st_atime = src->st_atime;
+    dst->st_atime_nsec = 0;
+    dst->st_mtime = src->st_mtime;
+    dst->st_mtime_nsec = 0;
+    dst->st_ctime = src->st_ctime;
+    dst->st_ctime_nsec = 0;
 }
 
 struct dirent * readdir_soloader(DIR * dir) {
@@ -56,74 +106,23 @@ int readdir_r_soloader(DIR *dirp, dirent64_bionic *entry, dirent64_bionic **resu
     return ret;
 }
 
-FILE* previouslyOpenedFiles[2];
-
 FILE *fopen_soloader(char *fname, char *mode) {
-    if (strstr(fname, "DroidSans.ttf") &&  previouslyOpenedFiles[0] != NULL) {
-        return previouslyOpenedFiles[0];
-    } else if (strstr(fname, "DroidSansFallback.ttf") && previouslyOpenedFiles[1] != NULL) {
-        return previouslyOpenedFiles[1];
-    }
-
-    char* fname_real;
-    if (strstr(fname, "/system/fonts/DroidSans")) {
-        fname_real = strdup("app0:data/Roboto-Regular.ttf");
-    } else {
-        fname_real = strdup(fname);
-    }
-
-    FILE* ret =  fopen(fname_real, mode);
-    logv_debug("[io] fopen(%s) (%s): 0x%x", fname_real, fname, ret);
-    free(fname_real);
-
-    if (strstr(fname, "DroidSans.ttf") && ret != NULL) {
-        previouslyOpenedFiles[0] = ret;
-    } else if (strstr(fname, "DroidSansFallback.ttf") && ret != NULL) {
-        previouslyOpenedFiles[1] = ret;
-    }
+    FILE* ret =  fopen(fname, mode);
+    logv_debug("[io] fopen(%s): 0x%x", fname, ret);
     return ret;
 }
 
-#define MUSL_O_WRONLY         01
-#define MUSL_O_RDWR           02
-#define MUSL_O_CREAT        0100
-#define MUSL_O_EXCL         0200
-#define MUSL_O_TRUNC       01000
-#define MUSL_O_APPEND      02000
-#define MUSL_O_NONBLOCK    04000
-
-int _musl2newlib(int flags)
-{
-    int out = 0;
-    if (flags & MUSL_O_RDWR)
-        out |= O_RDWR;
-    else if (flags & MUSL_O_WRONLY)
-        out |= O_WRONLY;
-    else
-        out |= O_RDONLY;
-    if (flags & MUSL_O_NONBLOCK)
-        out |= O_NONBLOCK;
-    if (flags & MUSL_O_APPEND)
-        out |= O_APPEND;
-    if (flags & MUSL_O_CREAT)
-        out |= O_CREAT;
-    if (flags & MUSL_O_TRUNC)
-        out |= O_TRUNC;
-    if (flags & MUSL_O_EXCL)
-        out |= O_EXCL;
-    return out;
-}
 
 int open_soloader(char *_fname, int flags) {
-    flags = _musl2newlib(flags);
+    flags = oflags_newlib_to_oflags_musl(flags);
     int ret = open(_fname, flags);
     logv_debug("[io] open(%s, %x): %i", _fname, flags, ret);
     return ret;
 }
 
-int read_soloader(int __fd, void *__buf, size_t __nbyte) {
-    int ret = read(__fd, __buf, __nbyte);
-    logv_debug("[io] read(fd#%i, %x, %i): %i", __fd, (int)__buf, __nbyte, ret);
+int read_soloader(int fd, void * buf, size_t nbyte) {
+    int ret = read(fd, buf, nbyte);
+    logv_debug("[io] read(fd#%i, 0x%x, %i): %i", fd, buf, nbyte, ret);
     return ret;
 }
 
@@ -137,7 +136,7 @@ int fstat_soloader(int fd, void *statbuf) {
     struct stat st;
     int res = fstat(fd, &st);
     if (res == 0)
-        *(uint64_t *)(statbuf + 0x30) = st.st_size;
+        stat_newlib_to_stat_bionic(&st, statbuf);
 
     logv_debug("[io] fstat(fd#%i): %i", fd, res);
     return res;
@@ -149,7 +148,7 @@ int write_soloader(int fd, const void *buf, int count) {
     return ret;
 }
 
-int fcntl_soloader(int fd, int cmd, ... /* arg */ ) {
+int fcntl_soloader(int fd, int cmd, ...) {
     logv_debug("[io] fcntl(fd#%i, cmd#%i)", fd, cmd);
     return 0;
 }
@@ -167,17 +166,10 @@ int close_soloader(int fd) {
 }
 
 int fclose_soloader(FILE * f) {
-    if (previouslyOpenedFiles[0] == f) {
-        previouslyOpenedFiles[0] = NULL;
-    } else if (previouslyOpenedFiles[1] == f) {
-        previouslyOpenedFiles[1] = NULL;
-    }
-
     int ret = fclose(f);
     logv_debug("[io] fclose(0x%x): %i", f, ret);
     return ret;
 }
-
 
 int closedir_soloader(DIR* dir) {
     int ret = closedir(dir);
@@ -189,27 +181,8 @@ int stat_soloader(char *_pathname, stat64_bionic *statbuf) {
     struct stat st;
     int res = stat(_pathname, &st);
 
-    if (res == 0) {
-        if (!statbuf) {
-            statbuf = malloc(sizeof(stat64_bionic));
-        }
-        statbuf->st_dev = st.st_dev;
-        statbuf->st_ino = st.st_ino;
-        statbuf->st_mode = st.st_mode;
-        statbuf->st_nlink = st.st_nlink;
-        statbuf->st_uid = st.st_uid;
-        statbuf->st_gid = st.st_gid;
-        statbuf->st_rdev = st.st_rdev;
-        statbuf->st_size = st.st_size;
-        statbuf->st_blksize = st.st_blksize;
-        statbuf->st_blocks = st.st_blocks;
-        statbuf->st_atime = st.st_atime;
-        statbuf->st_atime_nsec = 0;
-        statbuf->st_mtime = st.st_mtime;
-        statbuf->st_mtime_nsec = 0;
-        statbuf->st_ctime = st.st_ctime;
-        statbuf->st_ctime_nsec = 0;
-    }
+    if (res == 0)
+        stat_newlib_to_stat_bionic(&st, statbuf);
 
     logv_debug("[io] stat(%s): %i", _pathname, res);
     return res;
@@ -225,60 +198,4 @@ off_t ftello_soloader(FILE * a) {
     off_t ret = ftello(a);
     logv_debug("[io] ftello(0x%x): %i", a, ret);
     return ret;
-}
-
-int ffullread(FILE *f, void **dataptr, size_t *sizeptr, size_t chunk) {
-    char *data = NULL, *temp;
-    size_t size = 0;
-    size_t used = 0;
-    size_t n;
-
-    if (f == NULL || dataptr == NULL || sizeptr == NULL)
-        return FFULLREAD_INVALID;
-
-    if (ferror(f))
-        return FFULLREAD_ERROR;
-
-    while (1) {
-        if (used + chunk + 1 > size) {
-            size = used + chunk + 1;
-
-            // Overflow check
-            if (size <= used) {
-                free(data);
-                return FFULLREAD_TOOMUCH;
-            }
-
-            temp = realloc(data, size);
-            if (temp == NULL) {
-                free(data);
-                return FFULLREAD_NOMEM;
-            }
-            data = temp;
-        }
-
-        n = fread(data + used, 1, chunk, f);
-        if (n == 0)
-            break;
-
-        used += n;
-    }
-
-    if (ferror(f)) {
-        free(data);
-        return FFULLREAD_ERROR;
-    }
-
-    temp = realloc(data, used + 1);
-    if (temp == NULL) {
-        free(data);
-        return FFULLREAD_NOMEM;
-    }
-    data = temp;
-    data[used] = '\0';
-
-    *dataptr = data;
-    *sizeptr = used;
-
-    return FFULLREAD_OK;
 }

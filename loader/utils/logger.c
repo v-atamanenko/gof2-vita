@@ -7,7 +7,7 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "logger.h"
+#include "utils/logger.h"
 
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/threadmgr.h>

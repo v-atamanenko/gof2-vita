@@ -9,9 +9,10 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
+#include "reimpl/env.h"
+
 #include <string.h>
-#include "env.h"
-#include "utils/utils.h"
+
 #include "utils/logger.h"
 
 typedef enum EnvVarsIds {

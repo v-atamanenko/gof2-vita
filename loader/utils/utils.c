@@ -10,7 +10,7 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "utils.h"
+#include "utils/utils.h"
 
 #include <psp2/io/stat.h>
 
@@ -26,6 +26,7 @@
 #include <psp2/ctrl.h>
 #include <stdbool.h>
 
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "bugprone-reserved-identifier"
 
 int ret0(void) {

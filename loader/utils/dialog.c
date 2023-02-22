@@ -11,7 +11,7 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "dialog.h"
+#include "utils/dialog.h"
 
 #include <psp2/ctrl.h>
 #include <psp2/ime_dialog.h>

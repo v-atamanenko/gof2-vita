@@ -6,25 +6,29 @@
  *
  * Copyright (C) 2021 Andy Nguyen
  * Copyright (C) 2022 Rinnegatamante
- * Copyright (C) 2022 Volodymyr Atamanenko
  * Copyright (C) 2022 GrapheneCt
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "pthr.h"
+#include "reimpl/pthr.h"
+
+#include <stdlib.h>
+#include <string.h>
+#include <psp2/kernel/clib.h>
+#include <psp2/kernel/threadmgr.h>
+
 #include "utils/utils.h"
 #include "utils/logger.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <psp2/kernel/clib.h>
-#include <string.h>
-#include <psp2/kernel/threadmgr.h>
 
 #define  MUTEX_TYPE_NORMAL     0x0000
 #define  MUTEX_TYPE_RECURSIVE  0x4000
 #define  MUTEX_TYPE_ERRORCHECK 0x8000
+
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
+#pragma ide diagnostic ignored "readability-non-const-parameter"
 
 static pthread_t s_pthreadSelfRet;
 
@@ -290,7 +294,7 @@ int sem_getvalue_soloader (int * uid, int * sval) {
 }
 
 int sem_init_soloader (int * uid, int pshared, unsigned int value) {
-    *uid = sceKernelCreateSema("sema", 0, value, 0x7fffffff, NULL);
+    *uid = sceKernelCreateSema("sema", 0, (int) value, 0x7fffffff, NULL);
     if (*uid < 0)
         return -1;
     return 0;
@@ -307,7 +311,7 @@ int sem_timedwait_soloader (int * uid, const struct timespec * abstime) {
     if (sceKernelWaitSema(*uid, 1, &timeout) >= 0)
         return 0;
     if (!abstime) return -1;
-    long long now = current_timestamp_ms() * 1000; // us
+    long long now = (long long) current_timestamp_ms() * 1000; // us
     long long _timeout = abstime->tv_sec * 1000 * 1000 + abstime->tv_nsec / 1000; // us
     if (_timeout-now >= 0) return -1;
     uint timeout_real = _timeout - now;
