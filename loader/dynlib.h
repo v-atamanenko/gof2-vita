@@ -14,10 +14,7 @@
 #ifndef SOLOADER_DYNLIB_H
 #define SOLOADER_DYNLIB_H
 
-#include "config.h"
-#include "utils/utils.h"
-
-#include "so_util.h"
+#include <so_util/so_util.h>
 
 void resolve_imports(so_module* mod);
 

@@ -15,9 +15,6 @@
 #ifndef SOLOADER_PATCH_GAME_H
 #define SOLOADER_PATCH_GAME_H
 
-#include "config.h"
-#include "utils/utils.h"
-
 void so_patch();
 
 #endif // SOLOADER_PATCH_GAME_H

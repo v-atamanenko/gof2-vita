@@ -1,3 +1,5 @@
+#include "AFakeNative/keycodes.h"
+
 void ** Globals__appManager;
 void ** gEngine;
 int * DAT_00141064;
@@ -28,22 +30,14 @@ int* Globals__touch_stick_y;
 
 int (*GetCurrentApplicationModule)(void *appManager);
 
-so_hook OnTouchBegin_hook;
-so_hook OnTouchEnd_hook;
+void (*OnTouchBegin)(void * this, int x, int y, int keycode);
+void (*OnTouchEnd)(void * this, int x, int y, int keycode);
 
-void OnTouchBegin(void * this, int x, int y, int keycode) {
-
-    SO_CONTINUE(void *, OnTouchBegin_hook, this, x, y, keycode);
-}
-
-void OnTouchEnd(void * this, int x, int y, int keycode) {
-    SO_CONTINUE(void *, OnTouchEnd_hook, this, x, y, keycode);
-}
+void (*AddTouch)(int pointerId, int action, int x, int y);
 
 void keyPressed(int keycode) {
 
     if (GetCurrentApplicationModule(*Globals__appManager) == 2) {
-
         void * appManager = *(void **)(*(void **)(gEngine) + 0x28);
         switch(keycode) {
             case AKEYCODE_DPAD_UP:
@@ -141,9 +135,7 @@ void keyReleased(int keycode) {
     }
 }
 
-void (*_Z8AddTouchiiii)(int pointerId, int action, int x, int y);
-
-void ndk23_handleTouchPadEvent(int unused, int pointerId, int action, float x, float y) {
+void handleTouchPadEvent(int unused, int pointerId, int action, float x, float y) {
     if (GetCurrentApplicationModule(*Globals__appManager) == 2) {
         float uVar4 = (float)x * (float)*Globals__smallButton_dim * 2;
         float uVar3 = (float)y * (float)*Globals__smallButton_dim * 2;
@@ -151,16 +143,15 @@ void ndk23_handleTouchPadEvent(int unused, int pointerId, int action, float x, f
         float fVar8 = uVar4 + ((float)*Globals__touch_stick_x - (float)*Globals__smallButton_dim);
         float fVar7 = uVar3 + ((float)*Globals__touch_stick_y - (float)*Globals__smallButton_dim);
 
-        _Z8AddTouchiiii(pointerId, action, (int)fVar8, (int)fVar7);
+        AddTouch(pointerId, action, (int)fVar8, (int)fVar7);
     }
 }
 
 void patch__controls_fix() {
-    //OnTouchBegin = (void *) so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager12OnTouchBeginEiiPv");
-    //OnTouchEnd = (void *) so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager10OnTouchEndEiiPv");
-
-    OnTouchBegin_hook = hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager12OnTouchBeginEiiPv"), (uintptr_t)OnTouchBegin);
-    OnTouchEnd_hook   = hook_addr(so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager10OnTouchEndEiiPv"), (uintptr_t)OnTouchEnd);
+    OnTouchBegin = (void *) so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager12OnTouchBeginEiiPv");
+    OnTouchEnd = (void *) so_symbol(&so_mod, "_ZN11AbyssEngine18ApplicationManager10OnTouchEndEiiPv");
+    GetCurrentApplicationModule = (void *) so_symbol(&so_mod, "_ZNK11AbyssEngine18ApplicationManager27GetCurrentApplicationModuleEv");
+    AddTouch = (void *) so_symbol(&so_mod, "_Z8AddTouchiiii");
 
     Globals__turret_view_y = (int *) so_symbol(&so_mod, "_ZN7Globals13turret_view_yE");
     Globals__turret_view_x = (int *) so_symbol(&so_mod, "_ZN7Globals13turret_view_xE");
@@ -192,10 +183,7 @@ void patch__controls_fix() {
     FLOAT_0013de38 = (float *)(so_mod.text_base + 0x0013de38);
     FLOAT_0013de40 = (float *)(so_mod.text_base + 0x0013de40);
 
-    GetCurrentApplicationModule = (void *) so_symbol(&so_mod, "_ZNK11AbyssEngine18ApplicationManager27GetCurrentApplicationModuleEv");
-    _Z8AddTouchiiii = (void *) so_symbol(&so_mod, "_Z8AddTouchiiii");
-
     hook_addr(so_symbol(&so_mod, "ndk23_keyPressed"), (uintptr_t)keyPressed);
     hook_addr(so_symbol(&so_mod, "ndk23_keyReleased"), (uintptr_t)keyReleased);
-    hook_addr(so_symbol(&so_mod, "ndk23_handleTouchPadEvent"), (uintptr_t)ndk23_handleTouchPadEvent);
+    hook_addr(so_symbol(&so_mod, "ndk23_handleTouchPadEvent"), (uintptr_t)handleTouchPadEvent);
 }

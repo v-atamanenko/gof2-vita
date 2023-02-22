@@ -13,10 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "main.h"
-#include "utils/dialog.h"
 #include "so_util.h"
-#include "utils/logger.h"
+
+extern void fatal_error(const char * fmt, ...);
 
 typedef struct b_enc {
     union {
@@ -58,7 +57,7 @@ static so_module *head = NULL, *tail = NULL;
 
 so_hook hook_thumb(uintptr_t addr, uintptr_t dst) {
     so_hook h;
-    printf("THUMB HOOK\n");
+    //sceClibPrintf("THUMB HOOK\n");
     if (addr == 0)
         return h;
     h.thumb_addr = addr;
@@ -67,7 +66,7 @@ so_hook hook_thumb(uintptr_t addr, uintptr_t dst) {
         uint16_t nop = 0xbf00;
         kuKernelCpuUnrestrictedMemcpy((void *)addr, &nop, sizeof(nop));
         addr += 2;
-        printf("THUMB UNALIGNED\n");
+        //sceClibPrintf("THUMB UNALIGNED\n");
     }
 
     h.addr = addr;
@@ -167,7 +166,7 @@ int _so_load(so_module *mod, SceUID so_blockid, void *so_data, uintptr_t load_ad
                 mod->cave_base = mod->cave_head = prog_data + mod->phdr[i].p_memsz;
                 mod->cave_base = ALIGN_MEM(mod->cave_base, 0x4);
                 mod->cave_head = mod->cave_base;
-                logv_info("code cave: %d bytes (@0x%08X).", mod->cave_size, mod->cave_base);
+                //sceClibPrintf("code cave: %d bytes (@0x%08X).\n", mod->cave_size, mod->cave_base);
 
                 data_addr = (uintptr_t)prog_data + prog_size;
             } else {
@@ -482,6 +481,10 @@ int so_resolve(so_module *mod, so_default_dynlib *default_dynlib, int size_defau
     return 0;
 }
 
+int __ret0_dummy() {
+    return 0;
+}
+
 int so_resolve_with_dummy(so_module *mod, so_default_dynlib *default_dynlib, int size_default_dynlib, int default_dynlib_only) {
     for (int i = 0; i < mod->num_reldyn + mod->num_relplt; i++) {
         Elf32_Rel *rel = i < mod->num_reldyn ? &mod->reldyn[i] : &mod->relplt[i - mod->num_reldyn];
@@ -497,7 +500,7 @@ int so_resolve_with_dummy(so_module *mod, so_default_dynlib *default_dynlib, int
                 if (sym->st_shndx == SHN_UNDEF) {
                     for (int j = 0; j < size_default_dynlib / sizeof(so_default_dynlib); j++) {
                         if (strcmp(mod->dynstr + sym->st_name, default_dynlib[j].symbol) == 0) {
-                            *ptr = &ret0;
+                            *ptr = &__ret0_dummy;
                             break;
                         }
                     }
@@ -652,7 +655,7 @@ void so_symbol_fix_ldmia(so_module *mod, const char *symbol) {
 
         //Is this an LDMIA instruction with a R0-R12 base register?
         if (((inst & 0xFFF00000) == 0xE8900000) && (((inst >> 16) & 0xF) < 13) ) {
-            logv_warn("Found possibly misaligned LDMIA on 0x%08X, trying to fix it... (instr: 0x%08X, to 0x%08X)", addr, *(uint32_t*)addr, mod->patch_head);
+            sceClibPrintf("Found possibly misaligned LDMIA on 0x%08X, trying to fix it... (instr: 0x%08X, to 0x%08X)", addr, *(uint32_t*)addr, mod->patch_head);
             trampoline_ldm(mod, addr);
         }
     }

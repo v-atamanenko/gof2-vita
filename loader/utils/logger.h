@@ -1,7 +1,7 @@
 /*
  * utils/logger.h
  *
- * Copyright (C) 2022 Volodymyr Atamanenko
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -10,7 +10,6 @@
 #ifndef SOLOADER_LOGGER_H
 #define SOLOADER_LOGGER_H
 
-#include <stdio.h>
 #include <psp2/kernel/clib.h>
 
 #ifdef __cplusplus
@@ -30,10 +29,10 @@ extern "C" {
 #define log_debug(fmt) _log_debug(__FILE__, __LINE__, __func__, fmt)
 #define log_error(fmt) _log_error(__FILE__, __LINE__, __func__, fmt)
 
-int _log_info(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
-int _log_warn(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
-int _log_debug(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
-int _log_error(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
+void _log_info(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
+void _log_warn(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
+void _log_debug(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
+void _log_error(const char *fname, int lineno, const char *fxname, const char* fmt, ...);
 
 #ifdef __cplusplus
 };

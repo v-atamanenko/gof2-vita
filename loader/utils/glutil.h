@@ -1,11 +1,11 @@
 /*
- * glutil.h
+ * utils/glutil.h
  *
  * OpenGL API initializer, related functions.
  *
  * Copyright (C) 2021 Andy Nguyen
  * Copyright (C) 2021 Rinnegatamante
- * Copyright (C) 2022 Volodymyr Atamanenko
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -14,25 +14,37 @@
 #ifndef SOLOADER_GLUTIL_H
 #define SOLOADER_GLUTIL_H
 
-#include "config.h"
-#include "utils/utils.h"
-
 #include <vitaGL.h>
 
 void gl_preload();
 void gl_init();
 void gl_swap();
-void drawFakeLoadingScreen();
 
 void glShaderSourceHook(GLuint shader, GLsizei count,
                         const GLchar **string, const GLint *_length);
 
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor);
+
 EGLBoolean eglGetConfigAttrib(EGLDisplay display,
                               EGLConfig config,
                               EGLint attribute,
                               EGLint * value);
+
 EGLBoolean eglQuerySurface(EGLDisplay dpy, EGLSurface eglSurface, EGLint attribute, EGLint *value);
+
+EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
+
+EGLContext eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
+
+EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win, const EGLint *attrib_list);
+
+EGLBoolean eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
+
+EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx);
+
+EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surface);
+
+EGLBoolean eglTerminate(EGLDisplay dpy);
 
 #define EGL_CONFIG_ID                     0x3028
 #define EGL_HEIGHT                        0x3056

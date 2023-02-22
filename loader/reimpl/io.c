@@ -15,7 +15,6 @@
 #include "io.h"
 
 #include <string.h>
-#include <libc_bridge.h>
 #include <sys/stat.h>
 #include <sys/unistd.h>
 #include <stdlib.h>
@@ -24,21 +23,6 @@
 
 #include "utils/utils.h"
 #include "utils/logger.h"
-
-char* fix_path(const char * orig_path) {
-    char* path_temp = malloc(PATH_MAX * sizeof(char));
-    strcpy(path_temp, orig_path);
-
-    if (strstr(path_temp, "appbundle:/")) {
-        path_temp = strremove(path_temp, "appbundle:/");
-        strprepend(path_temp, DATA_PATH_INT);
-        return path_temp;
-    }
-
-    path_temp = strremove(path_temp, "Android/data/com.ea.deadspace/files/");
-    path_temp = strreplace(path_temp, "deadspace/published", "deadspace/assets/published");
-    return path_temp;
-}
 
 dirent64_bionic * dirent_newlib_to_dirent_bionic(struct dirent* dirent_newlib) {
     dirent64_bionic * ret = malloc(sizeof(dirent64_bionic));
@@ -144,10 +128,8 @@ int read_soloader(int __fd, void *__buf, size_t __nbyte) {
 }
 
 DIR* opendir_soloader(char* _pathname) {
-    char * pathname = fix_path(_pathname);
-    DIR* ret = opendir(pathname);
-    logv_debug("[io] opendir(\"%s\"): 0x%x", pathname, ret);
-    free(pathname);
+    DIR* ret = opendir(_pathname);
+    logv_debug("[io] opendir(\"%s\"): 0x%x", _pathname, ret);
     return ret;
 }
 
@@ -204,10 +186,8 @@ int closedir_soloader(DIR* dir) {
 }
 
 int stat_soloader(char *_pathname, stat64_bionic *statbuf) {
-    char* pathname = fix_path(_pathname);
-
     struct stat st;
-    int res = stat(pathname, &st);
+    int res = stat(_pathname, &st);
 
     if (res == 0) {
         if (!statbuf) {
@@ -231,8 +211,7 @@ int stat_soloader(char *_pathname, stat64_bionic *statbuf) {
         statbuf->st_ctime_nsec = 0;
     }
 
-    logv_debug("[io] stat(%s): %i", pathname, res);
-    free(pathname);
+    logv_debug("[io] stat(%s): %i", _pathname, res);
     return res;
 }
 
@@ -257,7 +236,7 @@ int ffullread(FILE *f, void **dataptr, size_t *sizeptr, size_t chunk) {
     if (f == NULL || dataptr == NULL || sizeptr == NULL)
         return FFULLREAD_INVALID;
 
-    if (sceLibcBridge_ferror(f))
+    if (ferror(f))
         return FFULLREAD_ERROR;
 
     while (1) {
@@ -278,14 +257,14 @@ int ffullread(FILE *f, void **dataptr, size_t *sizeptr, size_t chunk) {
             data = temp;
         }
 
-        n = sceLibcBridge_fread(data + used, 1, chunk, f);
+        n = fread(data + used, 1, chunk, f);
         if (n == 0)
             break;
 
         used += n;
     }
 
-    if (sceLibcBridge_ferror(f)) {
+    if (ferror(f)) {
         free(data);
         return FFULLREAD_ERROR;
     }

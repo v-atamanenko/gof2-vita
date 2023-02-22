@@ -5,21 +5,19 @@
  *
  * Copyright (C) 2021 Andy Nguyen
  * Copyright (C) 2021 fgsfds
- * Copyright (C) 2022 Volodymyr Atamanenko
+ * Copyright (C) 2022-2023 Volodymyr Atamanenko
  *
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include <psp2/kernel/processmgr.h>
+#include "dialog.h"
+
 #include <psp2/ctrl.h>
 #include <psp2/ime_dialog.h>
+#include <psp2/kernel/clib.h>
+#include <psp2/kernel/processmgr.h>
 #include <psp2/message_dialog.h>
-
-#include <stdio.h>
-#include <stdarg.h>
-
-#include "dialog.h"
 
 #include <vitaGL.h>
 
@@ -70,10 +68,10 @@ void _utf8_to_utf16(const uint8_t *src, uint16_t *dst) {
 
 __attribute__((unused)) int init_ime_dialog(const char *title,
                                             const char *initial_text) {
-    memset(ime_title_utf16, 0, sizeof(ime_title_utf16));
-    memset(ime_initial_text_utf16, 0, sizeof(ime_initial_text_utf16));
-    memset(ime_input_text_utf16, 0, sizeof(ime_input_text_utf16));
-    memset(ime_input_text_utf8, 0, sizeof(ime_input_text_utf8));
+    sceClibMemset(ime_title_utf16, 0, sizeof(ime_title_utf16));
+    sceClibMemset(ime_initial_text_utf16, 0, sizeof(ime_initial_text_utf16));
+    sceClibMemset(ime_input_text_utf16, 0, sizeof(ime_input_text_utf16));
+    sceClibMemset(ime_input_text_utf8, 0, sizeof(ime_input_text_utf8));
 
     _utf8_to_utf16((uint8_t *)title, ime_title_utf16);
     _utf8_to_utf16((uint8_t *)initial_text, ime_initial_text_utf16);
@@ -97,7 +95,7 @@ __attribute__((unused)) char *get_ime_dialog_result(void) {
         return NULL;
 
     SceImeDialogResult result;
-    memset(&result, 0, sizeof(SceImeDialogResult));
+    sceClibMemset(&result, 0, sizeof(SceImeDialogResult));
     sceImeDialogGetResult(&result);
     if (result.button == SCE_IME_DIALOG_BUTTON_ENTER)
         _utf16_to_utf8(ime_input_text_utf16, ime_input_text_utf8);
@@ -110,7 +108,7 @@ __attribute__((unused)) char *get_ime_dialog_result(void) {
 
 int init_msg_dialog(const char *msg) {
     SceMsgDialogUserMessageParam msg_param;
-    memset(&msg_param, 0, sizeof(msg_param));
+    sceClibMemset(&msg_param, 0, sizeof(msg_param));
     msg_param.buttonType = SCE_MSG_DIALOG_BUTTON_TYPE_OK;
     msg_param.msg = (SceChar8 *)msg;
 
@@ -135,7 +133,7 @@ void fatal_error(const char *fmt, ...) {
     char string[512];
 
     va_start(list, fmt);
-    vsnprintf(string, sizeof(string), fmt, list);
+    sceClibVsnprintf(string, sizeof(string), fmt, list);
     va_end(list);
 
     vglInit(0);

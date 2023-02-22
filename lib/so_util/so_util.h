@@ -1,16 +1,13 @@
-#ifndef __SO_UTIL_H__
-#define __SO_UTIL_H__
-
-#include "elf.h"
-#include "config.h"
+#ifndef SO_UTIL_H
+#define SO_UTIL_H
 
 #include <psp2/types.h>
+
+#include "elf.h"
 
 #ifndef SCE_KERNEL_MEMBLOCK_TYPE_USER_RX
 #define SCE_KERNEL_MEMBLOCK_TYPE_USER_RX                 (0x0C20D050)
 #endif
-
-#include "elf.h"
 
 #define ALIGN_MEM(x, align) (((x) + ((align) - 1)) & ~((align) - 1))
 #define MAX_DATA_SEG 4
@@ -81,4 +78,4 @@ uintptr_t so_symbol(so_module *mod, const char *symbol);
   r; \
 })
 
-#endif
+#endif // SO_UTIL_H

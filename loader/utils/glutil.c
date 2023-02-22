@@ -1,5 +1,5 @@
 /*
- * glutil.c
+ * utils/glutil.c
  *
  * OpenGL API initializer, related functions.
  *
@@ -12,14 +12,18 @@
  */
 
 #include "utils/glutil.h"
+
+#include "utils/utils.h"
 #include "utils/dialog.h"
-#include "sha1.h"
-#include "logger.h"
+#include "utils/logger.h"
 
 #include <stdio.h>
 #include <malloc.h>
-#include <psp2/kernel/sysmem.h>
 #include <string.h>
+#include <psp2/kernel/sysmem.h>
+
+#define GLSL_PATH DATA_PATH
+#define GXP_PATH "app0:shaders"
 
 void gl_preload() {
     if (!file_exists("ur0:/data/libshacccg.suprx")
@@ -102,7 +106,7 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor) {
     logv_info("[GL] eglInitialize(0x%x)\n", (int)dpy);
 
-    vglInitExtended(0, 960, 544, 6 * 1024 * 1024, SCE_GXM_MULTISAMPLE_4X);
+    gl_init();
 
     if (major) *major = 2;
     if (minor) *minor = 2;
@@ -310,5 +314,35 @@ EGLBoolean eglGetConfigAttrib(EGLDisplay display,
         default:
             return EGL_FALSE;
     }
+    return EGL_TRUE;
+}
+
+EGLBoolean eglChooseConfig (EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config) {
+    return EGL_TRUE;
+}
+
+EGLContext eglCreateContext(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list) {
+    return strdup("ctx");
+}
+
+EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, void * win, const EGLint *attrib_list) {
+    return strdup("surface");
+}
+
+EGLBoolean eglMakeCurrent(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx) {
+    return EGL_TRUE;
+}
+
+EGLBoolean eglDestroyContext (EGLDisplay dpy, EGLContext ctx) {
+    if (ctx) free(ctx);
+    return EGL_TRUE;
+}
+
+EGLBoolean eglDestroySurface (EGLDisplay dpy, EGLSurface surface) {
+    if (surface) free(surface);
+    return EGL_TRUE;
+}
+
+EGLBoolean eglTerminate(EGLDisplay dpy) {
     return EGL_TRUE;
 }

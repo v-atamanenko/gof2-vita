@@ -307,7 +307,7 @@ int sem_timedwait_soloader (int * uid, const struct timespec * abstime) {
     if (sceKernelWaitSema(*uid, 1, &timeout) >= 0)
         return 0;
     if (!abstime) return -1;
-    long long now = current_timestamp() * 1000; // us
+    long long now = current_timestamp_ms() * 1000; // us
     long long _timeout = abstime->tv_sec * 1000 * 1000 + abstime->tv_nsec / 1000; // us
     if (_timeout-now >= 0) return -1;
     uint timeout_real = _timeout - now;

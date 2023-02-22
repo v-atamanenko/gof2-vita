@@ -14,7 +14,8 @@
 #define SOLOADER_UTILS_H
 
 #include <sys/types.h>
-#include "config.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 int ret0(void);
 
@@ -22,17 +23,20 @@ __attribute__((unused)) int ret1(void);
 
 int retminus1(void);
 
-int file_exists(const char *path);
+bool file_exists(const char *path);
 
 char * get_string_sha1(uint8_t* buf, long size);
 
 char * get_file_sha1(const char* path);
 
-int check_kubridge(void);
+bool module_loaded(const char * name);
 
-__attribute__((unused)) int string_ends_with(const char * str, const char * suffix);
+bool string_ends_with(const char * str, const char * suffix);
 
-void strprepend(char* s, const char* t);
+/* Prepends t into s. Assumes s has enough space allocated
+** for the combined string.
+*/
+void str_prepend(char* s, const char* t);
 
 __attribute__((unused)) inline int string_starts_with(const char *pre,
                                                       const char *str) {
@@ -54,14 +58,12 @@ __attribute__((unused)) inline int string_starts_with(const char *pre,
     return 1;
 }
 
-long long current_timestamp();
+uint64_t current_timestamp_ms();
 
-char *strremove(char *str, const char *sub);
+void str_remove(char *str, const char *sub);
 
-char* strreplace(char *target, const char *needle, const char *replacement);
+void str_replace(char *target, const char *needle, const char *replacement);
 
-int8_t is_dir(char* p);
-
-int soloader_init_all();
+bool is_dir(char* path);
 
 #endif // SOLOADER_UTILS_H

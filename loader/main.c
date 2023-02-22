@@ -11,63 +11,23 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "main.h"
-
-#include <psp2/kernel/threadmgr.h>
-#include <FalsoJNI/FalsoJNI.h>
-#include <psp2/apputil.h>
-#include <psp2/system_param.h>
-#include <sys/unistd.h>
-#include "utils/glutil.h"
+#include "utils/init.h"
 #include "utils/logger.h"
 
-#include "AFakeNative/AFakeNative.h"
+#include <psp2/kernel/threadmgr.h>
 
-__attribute__((unused)) int _newlib_heap_size_user = MEMORY_NEWLIB_MB * 1024 * 1024;
+#include <AFakeNative/AFakeNative.h>
+#include <FalsoJNI/FalsoJNI.h>
+#include <so_util/so_util.h>
+
+int _newlib_heap_size_user = 246 * 1024 * 1024;
 
 so_module so_mod;
 
-void setCountry() {
-    void (*setCountryCodeOfDevice)(JNIEnv *env, void *unused, jint countryCode) = (void *) so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_setCountryCodeOfDevice");
+// Reimplemented from classes.dex, needed for setting the default language
+void setCountry();
 
-    int lang = -1;
-    sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &lang);
-    switch (lang) {
-        case SCE_SYSTEM_PARAM_LANG_ITALIAN:
-            setCountryCodeOfDevice(&jni, NULL, 3);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_GERMAN:
-            setCountryCodeOfDevice(&jni, NULL, 1);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_KOREAN:
-            setCountryCodeOfDevice(&jni, NULL, 14);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_JAPANESE:
-            setCountryCodeOfDevice(&jni, NULL, 15);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_PT:
-        case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR:
-            setCountryCodeOfDevice(&jni, NULL, 7);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_SPANISH:
-            setCountryCodeOfDevice(&jni, NULL, 4);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_FRENCH:
-            setCountryCodeOfDevice(&jni, NULL, 2);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_POLISH:
-            setCountryCodeOfDevice(&jni, NULL, 6);
-            break;
-        case SCE_SYSTEM_PARAM_LANG_RUSSIAN:
-            setCountryCodeOfDevice(&jni, NULL, 5);
-            break;
-        default:
-            setCountryCodeOfDevice(&jni, NULL, 0);
-            break;
-    }
-}
-
-int main(int argc, char*argv[]) {
+int main(int argc, char* argv[]) {
     soloader_init_all();
 
     int (*JNI_OnLoad)(JavaVM* jvm) = (void*)so_symbol(&so_mod,"JNI_OnLoad");
@@ -108,4 +68,47 @@ int main(int argc, char*argv[]) {
     log_info("onNativeWindowCreated() passed");
 
     sceKernelExitDeleteThread(0);
+}
+
+#include <psp2/apputil.h>
+#include <psp2/system_param.h>
+
+void setCountry() {
+    void (*setCountryCodeOfDevice)(JNIEnv *env, void *unused, jint countryCode) = (void *) so_symbol(&so_mod, "Java_net_fishlabs_GalaxyonFire2_GOF2NA_setCountryCodeOfDevice");
+
+    int lang = -1;
+    sceAppUtilSystemParamGetInt(SCE_SYSTEM_PARAM_ID_LANG, &lang);
+    switch (lang) {
+        case SCE_SYSTEM_PARAM_LANG_ITALIAN:
+            setCountryCodeOfDevice(&jni, NULL, 3);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_GERMAN:
+            setCountryCodeOfDevice(&jni, NULL, 1);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_KOREAN:
+            setCountryCodeOfDevice(&jni, NULL, 14);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_JAPANESE:
+            setCountryCodeOfDevice(&jni, NULL, 15);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_PT:
+        case SCE_SYSTEM_PARAM_LANG_PORTUGUESE_BR:
+            setCountryCodeOfDevice(&jni, NULL, 7);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_SPANISH:
+            setCountryCodeOfDevice(&jni, NULL, 4);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_FRENCH:
+            setCountryCodeOfDevice(&jni, NULL, 2);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_POLISH:
+            setCountryCodeOfDevice(&jni, NULL, 6);
+            break;
+        case SCE_SYSTEM_PARAM_LANG_RUSSIAN:
+            setCountryCodeOfDevice(&jni, NULL, 5);
+            break;
+        default:
+            setCountryCodeOfDevice(&jni, NULL, 0);
+            break;
+    }
 }
