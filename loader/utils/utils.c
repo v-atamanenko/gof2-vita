@@ -160,3 +160,11 @@ char * get_file_sha1(const char* path) {
     free(buf);
     return ret;
 }
+
+void file_save(const char* path, const uint8_t * buffer, size_t size) {
+    FILE * f = fopen(path, "wb");
+    if (f) {
+        fwrite(buffer, size, 1, f);
+        fclose(f);
+    }
+}

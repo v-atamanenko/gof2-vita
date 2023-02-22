@@ -11,5 +11,6 @@
 #define SOLOADER_INIT_H
 
 void soloader_init_all();
+void so_load_from_apk();
 
 #endif // SOLOADER_INIT_H

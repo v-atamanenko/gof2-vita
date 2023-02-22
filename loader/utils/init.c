@@ -32,6 +32,7 @@
 #include <FalsoJNI/FalsoJNI.h>
 #include <so_util/so_util.h>
 #include <unzip/unzip.h>
+#include <sys/syslimits.h>
 
 // Base address for the Android .so to be loaded at
 #define LOAD_ADDRESS 0xA0000000
@@ -71,6 +72,40 @@ void soloader_init_all() {
                     "sure that you have %s file exactly at that path.", APK_PATH);
     }
 
+    char so_path_unpacked[PATH_MAX];
+    snprintf(so_path_unpacked, sizeof(so_path_unpacked), "%s%s", DATA_PATH, SO_PATH);
+    if (file_exists(so_path_unpacked)) {
+        if (so_file_load(&so_mod, so_path_unpacked, LOAD_ADDRESS) < 0)
+            fatal_error("Error: could not load %s.", so_path_unpacked);
+        logv_info("so_file_load(%s) passed.", so_path_unpacked);
+    } else {
+        so_load_from_apk();
+        logv_info("so_mem_load(%s) passed.", SO_PATH);
+    }
+
+    so_relocate(&so_mod);
+    log_info("so_relocate() passed.");
+
+    resolve_imports(&so_mod);
+    log_info("so_resolve() passed.");
+
+    so_patch();
+    log_info("so_patch() passed.");
+
+    so_flush_caches(&so_mod);
+    log_info("so_flush_caches() passed.");
+
+    so_initialize(&so_mod);
+    log_info("so_initialize() passed.");
+
+    gl_preload();
+    log_info("gl_preload() passed.");
+
+    jni_init();
+    log_info("jni_init() passed.");
+}
+
+void so_load_from_apk() {
     unzFile apk_file = unzOpen(APK_PATH);
     if (!apk_file)
         fatal_error("Error: could not load %s as an archive. Corrupted file?",
@@ -102,29 +137,12 @@ void soloader_init_all() {
     res = so_mem_load(&so_mod, so_buffer, so_size, LOAD_ADDRESS);
     if (res < 0)
         fatal_error("Error: could not load %s.", SO_PATH);
-    logv_info("so_mem_load(%s) passed.", SO_PATH);
+
+    // Saving the unpacked .so to save some loading times in future
+    char full_path[PATH_MAX];
+    snprintf(full_path, sizeof(full_path), "%s%s", DATA_PATH, SO_PATH);
+    file_save(full_path, so_buffer, so_size);
 
     free(so_hash);
     free(so_buffer);
-
-    so_relocate(&so_mod);
-    log_info("so_relocate() passed.");
-
-    resolve_imports(&so_mod);
-    log_info("so_resolve() passed.");
-
-    so_patch();
-    log_info("so_patch() passed.");
-
-    so_flush_caches(&so_mod);
-    log_info("so_flush_caches() passed.");
-
-    so_initialize(&so_mod);
-    log_info("so_initialize() passed.");
-
-    gl_preload();
-    log_info("gl_preload() passed.");
-
-    jni_init();
-    log_info("jni_init() passed.");
 }

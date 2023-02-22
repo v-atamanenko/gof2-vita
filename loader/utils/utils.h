@@ -66,4 +66,6 @@ void str_replace(char *target, const char *needle, const char *replacement);
 
 bool is_dir(char* path);
 
+void file_save(const char* path, const uint8_t * buffer, size_t size);
+
 #endif // SOLOADER_UTILS_H
