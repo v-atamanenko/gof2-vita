@@ -19,64 +19,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-#include <string>
-#include <sys/stat.h>
 #include <sys/dirent.h>
 #include <dirent.h>
-#include <sys/fcntl.h>
-#include <sys/unistd.h>
 
-#define CONFIG_FILE_PATH DATA_PATH"config.txt"
-
-float leftStickDeadZone;
-float rightStickDeadZone;
-int fpsLock;
-bool physicalControlsEnabled;
-
-void resetSettings() {
-    leftStickDeadZone = 0.11f;
-    rightStickDeadZone = 0.11f;
-    fpsLock = 0;
-    physicalControlsEnabled = true;
-}
-
-inline int8_t is_dir(char* p) {
-    DIR* filetest = opendir(p);
-    if (filetest != NULL) {
-        closedir(filetest);
-        return 1;
-    }
-    return 0;
-}
-
-void loadConfig(void) {
-    char buffer[30];
-    int value;
-
-    FILE *config = fopen(CONFIG_FILE_PATH, "r");
-
-    if (config) {
-        while (EOF != fscanf(config, "%[^ ] %d\n", buffer, &value)) {
-            if (strcmp("leftStickDeadZone", buffer) == 0) leftStickDeadZone = ((float)value / 100.f);
-            else if (strcmp("rightStickDeadZone", buffer) == 0) rightStickDeadZone = ((float)value / 100.f);
-            else if (strcmp("fpsLock", buffer) == 0) fpsLock = value;
-            else if (strcmp("physicalControlsEnabled", buffer) == 0) physicalControlsEnabled = (bool)value;
-        }
-        fclose(config);
-    }
-}
-
-void saveConfig(void) {
-    FILE *config = fopen(CONFIG_FILE_PATH, "w+");
-
-    if (config) {
-        fprintf(config, "%s %d\n", "leftStickDeadZone", (int)(leftStickDeadZone * 100.f));
-        fprintf(config, "%s %d\n", "rightStickDeadZone", (int)(rightStickDeadZone * 100.f));
-        fprintf(config, "%s %d\n", "fpsLock", (int)fpsLock);
-        fprintf(config, "%s %d\n", "physicalControlsEnabled", (int)physicalControlsEnabled);
-        fclose(config);
-    }
-}
+#include "../utils/settings.h"
 
 char *options_descs[] = {
         "Deadzone for the left analog stick. Increase if you have stick drift issues.\nThe default value is: 0.11.", // leftStickDeadZone
@@ -242,8 +188,9 @@ bool ImGui::SelectableCentered(const char* label, bool selected, ImGuiSelectable
 }
 
 int main(int argc, char *argv[]) {
-    resetSettings();
-    loadConfig();
+    settings_reset();
+    settings_load();
+
     int exit_code = 0xDEAD;
 
     vglInitExtended(0, 960, 544, 0x1800000, SCE_GXM_MULTISAMPLE_4X);
@@ -281,11 +228,11 @@ int main(int argc, char *argv[]) {
         ImGui::PushItemWidth(385);
 
         ImGui::SetCursorPos({73, 135});
-        ImGui::SliderFloat("##leftStickDeadZone", &leftStickDeadZone, 0.01f, 0.5f, "%.2f");
+        ImGui::SliderFloat("##leftStickDeadZone", &setting_leftStickDeadZone, 0.01f, 0.5f, "%.2f");
         SetDescription(OPT_DEADZONE_L);
 
         ImGui::SetCursorPos({73, 195});
-        ImGui::SliderFloat("##rightStickDeadZone", &rightStickDeadZone, 0.01f, 0.5f, "%.2f");
+        ImGui::SliderFloat("##rightStickDeadZone", &setting_rightStickDeadZone, 0.01f, 0.5f, "%.2f");
         SetDescription(OPT_DEADZONE_R);
 
         ImGui::PopItemWidth();
@@ -303,36 +250,36 @@ int main(int argc, char *argv[]) {
         {
             ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {3,10});
             ImGui::SetCursorPos({73, 255});
-            if (ImGui::SelectableCentered("Touch##cheat_infiniteAmmo", !physicalControlsEnabled, 0, {80,20}))
-                physicalControlsEnabled = false;
+            if (ImGui::SelectableCentered("Touch##cheat_infiniteAmmo", !setting_physicalControlsEnabled, 0, {80,20}))
+                setting_physicalControlsEnabled = false;
             SetDescription(OPT_PHYSCONTROLS);
             ImGui::PopStyleVar(1);
 
             ImGui::SetCursorPos({157, 255});
-            if (ImGui::SelectableCentered("Physical##cheat_infiniteAmmo", physicalControlsEnabled, 0, {80,20}))
-                physicalControlsEnabled = true;
+            if (ImGui::SelectableCentered("Physical##cheat_infiniteAmmo", setting_physicalControlsEnabled, 0, {80,20}))
+                setting_physicalControlsEnabled = true;
             SetDescription(OPT_PHYSCONTROLS);
         }
 
         {
             ImGui::SetCursorPos({73, 313});
-            if (ImGui::SelectableCentered("No Lock", fpsLock == 0, 0, {120,20}))
-                fpsLock = 0;
+            if (ImGui::SelectableCentered("No Lock", setting_fpsLock == 0, 0, {120,20}))
+                setting_fpsLock = 0;
             SetDescription(OPT_FPSLOCK);
 
             ImGui::SetCursorPos({210, 313});
-            if (ImGui::SelectableCentered("45 FPS", fpsLock == 45, 0, {72,20}))
-                fpsLock = 45;
+            if (ImGui::SelectableCentered("45 FPS", setting_fpsLock == 45, 0, {72,20}))
+                setting_fpsLock = 45;
             SetDescription(OPT_FPSLOCK);
 
             ImGui::SetCursorPos({298, 313});
-            if (ImGui::SelectableCentered("30 FPS", fpsLock == 30, 0, {72,20}))
-                fpsLock = 30;
+            if (ImGui::SelectableCentered("30 FPS", setting_fpsLock == 30, 0, {72,20}))
+                setting_fpsLock = 30;
             SetDescription(OPT_FPSLOCK);
 
             ImGui::SetCursorPos({386, 313});
-            if (ImGui::SelectableCentered("25 FPS", fpsLock == 25, 0, {72,20}))
-                fpsLock = 25;
+            if (ImGui::SelectableCentered("25 FPS", setting_fpsLock == 25, 0, {72,20}))
+                setting_fpsLock = 25;
             SetDescription(OPT_FPSLOCK);
         }
 
@@ -354,12 +301,12 @@ int main(int argc, char *argv[]) {
 
         // first color is label and border, second is hover
         if (FancyButton("Save and Launch", {523, 394}, {187, 40}, IM_COL32(0,146,255,255), IM_COL32(0,146,255,40))) {
-            saveConfig();
+            settings_save();
             exit_code = 1;
         }
 
         if (FancyButton("Reset Settings", {724, 394}, {187, 40}, IM_COL32(58,87,237,255), IM_COL32(12,16,40,255))) {
-            resetSettings();
+            settings_reset();
         }
 
         ImGui::EndGroup();
@@ -375,7 +322,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (exit_code < 2) // Save
-        saveConfig();
+        settings_save();
 
     if (exit_code % 2 == 1) // Launch
         sceAppMgrLoadExec("app0:/eboot.bin", NULL, NULL);

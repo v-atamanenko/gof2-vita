@@ -25,7 +25,7 @@ void settings_reset() {
     setting_leftStickDeadZone = 0.11f;
     setting_rightStickDeadZone = 0.11f;
     setting_fpsLock = 0;
-    setting_physicalControlsEnabled = false;
+    setting_physicalControlsEnabled = true;
 }
 
 void settings_load() {
@@ -43,6 +43,18 @@ void settings_load() {
             else if (strcmp("fpsLock", buffer) == 0) setting_fpsLock = value;
             else if (strcmp("physicalControlsEnabled", buffer) == 0) setting_physicalControlsEnabled = (bool)value;
         }
+        fclose(config);
+    }
+}
+
+void settings_save() {
+    FILE *config = fopen(CONFIG_FILE_PATH, "w+");
+
+    if (config) {
+        fprintf(config, "%s %d\n", "leftStickDeadZone", (int)(setting_leftStickDeadZone * 100.f));
+        fprintf(config, "%s %d\n", "rightStickDeadZone", (int)(setting_rightStickDeadZone * 100.f));
+        fprintf(config, "%s %d\n", "fpsLock", (int)setting_fpsLock);
+        fprintf(config, "%s %d\n", "physicalControlsEnabled", (int)setting_physicalControlsEnabled);
         fclose(config);
     }
 }

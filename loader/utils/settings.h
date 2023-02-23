@@ -13,11 +13,21 @@
 #define SOLOADER_SETTINGS_H
 #include "stdbool.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern float setting_leftStickDeadZone;
 extern float setting_rightStickDeadZone;
 extern int setting_fpsLock;
 extern bool setting_physicalControlsEnabled;
 
 void settings_load();
+void settings_save();
+void settings_reset();
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif // SOLOADER_SETTINGS_H

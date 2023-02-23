@@ -129,6 +129,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
 add_executable(configurator
                loader/configurator/main.cpp
+               loader/utils/settings.c
                )
 
 target_include_directories(configurator SYSTEM
