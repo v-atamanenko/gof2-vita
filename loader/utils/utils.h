@@ -68,4 +68,10 @@ bool is_dir(char* path);
 
 void file_save(const char* path, const uint8_t * buffer, size_t size);
 
+/*
+ * mkpath(): create all directories leading to file `file_path`
+ * returns: 0 on success, -1 on fail (and sets errno)
+ */
+int mkpath(char* file_path, mode_t mode);
+
 #endif // SOLOADER_UTILS_H

@@ -13,18 +13,21 @@
 #include "utils/utils.h"
 
 #include <psp2/io/stat.h>
+#include <psp2/ctrl.h>
 
+#include <assert.h>
+#include <dirent.h>
+#include <errno.h>
+#include <malloc.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
 #include <sys/dirent.h>
-#include <dirent.h>
-#include <FalsoJNI/FalsoJNI.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 
+#include <FalsoJNI/FalsoJNI.h>
 #include <sha1/sha1.h>
-#include <malloc.h>
-#include <psp2/ctrl.h>
-#include <stdbool.h>
 
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #pragma ide diagnostic ignored "bugprone-reserved-identifier"
@@ -159,6 +162,21 @@ char * get_file_sha1(const char* path) {
     char * ret = get_string_sha1(buf, size);
     free(buf);
     return ret;
+}
+
+int mkpath(char* file_path, mode_t mode) {
+    assert(file_path && *file_path);
+    for (char* p = strchr(file_path + 1, '/'); p; p = strchr(p + 1, '/')) {
+        *p = '\0';
+        if (mkdir(file_path, mode) == -1) {
+            if (errno != EEXIST) {
+                *p = '/';
+                return -1;
+            }
+        }
+        *p = '/';
+    }
+    return 0;
 }
 
 void file_save(const char* path, const uint8_t * buffer, size_t size) {

@@ -151,6 +151,7 @@ void so_load_from_apk() {
     // Saving the unpacked .so to save some loading times in future
     char full_path[PATH_MAX];
     snprintf(full_path, sizeof(full_path), "%s%s", DATA_PATH, SO_PATH);
+    mkpath(full_path, 0777);
     file_save(full_path, so_buffer, so_size);
 
     free(so_hash);
