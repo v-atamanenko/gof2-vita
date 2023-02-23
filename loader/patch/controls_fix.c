@@ -1,4 +1,5 @@
 #include "AFakeNative/keycodes.h"
+#include "utils/settings.h"
 
 void ** Globals__appManager;
 void ** gEngine;
@@ -76,7 +77,7 @@ void keyPressed(int keycode) {
                 OnTouchBegin(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchBegin(appManager, 250, 480, keycode);
+                OnTouchBegin(appManager, 62, 185, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchBegin(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
@@ -126,7 +127,7 @@ void keyReleased(int keycode) {
                 OnTouchEnd(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchEnd(appManager, 250, 480, keycode);
+                OnTouchEnd(appManager, 62, 185, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchEnd(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
@@ -136,7 +137,7 @@ void keyReleased(int keycode) {
 }
 
 void handleTouchPadEvent(int unused, int pointerId, int action, float x, float y) {
-    if (GetCurrentApplicationModule(*Globals__appManager) == 2) {
+    if (GetCurrentApplicationModule(*Globals__appManager) == 2 && setting_physicalControlsEnabled) {
         float uVar4 = (float)x * (float)*Globals__smallButton_dim * 2;
         float uVar3 = (float)y * (float)*Globals__smallButton_dim * 2;
 
