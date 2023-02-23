@@ -21,6 +21,7 @@
 #include <OpenSLES.h>
 #include <math.h>
 #include <psp2/kernel/clib.h>
+#include <psp2/kernel/processmgr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +34,7 @@
 
 #include "utils/utils.h"
 #include "utils/glutil.h"
+#include "utils/settings.h"
 #include "reimpl/io.h"
 #include "reimpl/log.h"
 #include "reimpl/mem.h"
@@ -88,6 +90,28 @@ extern void * _Znwj;
 extern const char *BIONIC_ctype_;
 extern const short *BIONIC_tolower_tab_;
 extern const short *BIONIC_toupper_tab_;
+
+bool first_swap = true;
+
+uint32_t last_render_time;
+uint32_t delta;
+
+EGLBoolean eglSwapBuffers_wrapper(EGLDisplay display, EGLSurface surface) {
+    if (setting_fpsLock == 0) return eglSwapBuffers(display, surface);
+
+    if (first_swap) {
+        last_render_time = sceKernelGetProcessTimeLow();
+        delta = (1000000 / (setting_fpsLock+1));
+        first_swap = false;
+    }
+
+    while (sceKernelGetProcessTimeLow() - last_render_time < delta) {
+        sched_yield();
+    }
+
+    last_render_time = sceKernelGetProcessTimeLow();
+    return eglSwapBuffers(display, surface);
+}
 
 so_default_dynlib default_dynlib[] = {
         { "AConfiguration_delete", (uintptr_t)&AConfiguration_delete },
@@ -194,7 +218,7 @@ so_default_dynlib default_dynlib[] = {
         { "eglInitialize", (uintptr_t)&eglInitialize },
         { "eglMakeCurrent", (uintptr_t)&eglMakeCurrent },
         { "eglQuerySurface", (uintptr_t)&eglQuerySurface },
-        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers },
+        { "eglSwapBuffers", (uintptr_t)&eglSwapBuffers_wrapper },
         { "eglTerminate", (uintptr_t)&eglTerminate },
         { "fclose", (uintptr_t)&fclose_soloader },
         { "fdopen", (uintptr_t)&fdopen },

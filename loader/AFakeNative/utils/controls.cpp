@@ -18,8 +18,11 @@
 #include "../keycodes.h"
 #include "../AInput.h"
 
-#define L_INNER_DEADZONE 0.11f
-#define R_INNER_DEADZONE 0.11f
+extern "C" {
+    float L_INNER_DEADZONE __attribute__((weak)) = 0.11f;
+    float R_INNER_DEADZONE __attribute__((weak)) = 0.11f;
+}
+
 #define L_OUTER_DEADZONE 0.99f
 #define R_OUTER_DEADZONE 0.99f
 
@@ -68,7 +71,6 @@ void * controls_poll(void * arg) {
     while (1) {
         pollTouch();
         pollPad();
-        //pollAccel();
         sceKernelDelayThread(15000);
     }
 }
@@ -364,15 +366,3 @@ void pollPad() {
         sendTouchpadUp(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
     }
 }
-
-/*
-void pollAccel() {
-    SceMotionSensorState sensor;
-    sceMotionGetSensorState(&sensor, 1);
-
-    float x = sensor.accelerometer.x*GRAVITY_CONSTANT;
-    float y = sensor.accelerometer.y*GRAVITY_CONSTANT;
-    float z = sensor.accelerometer.z*GRAVITY_CONSTANT;
-    NativeOnAcceleration(&jni, (void*)0x42424242, x, y, z);
-}
-*/

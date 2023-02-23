@@ -13,6 +13,7 @@
 
 #include "utils/init.h"
 #include "utils/logger.h"
+#include "utils/settings.h"
 
 #include <psp2/kernel/threadmgr.h>
 
@@ -61,7 +62,8 @@ int main(int argc, char* argv[]) {
     activity->callbacks->onInputQueueCreated(activity, aInputQueue);
     log_info("onInputQueueCreated() passed");
 
-    KeyBoardState(&jni, NULL, 1);
+    if (setting_physicalControlsEnabled)
+        KeyBoardState(&jni, NULL, 1);
 
     ANativeWindow * aNativeWindow = ANativeWindow_create();
     activity->callbacks->onNativeWindowCreated(activity, aNativeWindow);

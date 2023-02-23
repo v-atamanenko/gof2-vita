@@ -15,6 +15,7 @@
 #include "utils/glutil.h"
 #include "utils/logger.h"
 #include "utils/utils.h"
+#include "utils/settings.h"
 
 #include "dynlib.h"
 #include "patch.h"
@@ -36,6 +37,10 @@
 
 // Base address for the Android .so to be loaded at
 #define LOAD_ADDRESS 0xA0000000
+
+// Weak symbols from AFakeNative to be overriden with our settings
+float L_INNER_DEADZONE = 0.11f;
+float R_INNER_DEADZONE = 0.11f;
 
 extern so_module so_mod;
 
@@ -103,6 +108,11 @@ void soloader_init_all() {
 
     jni_init();
     log_info("jni_init() passed.");
+
+    settings_load();
+    L_INNER_DEADZONE = setting_leftStickDeadZone;
+    R_INNER_DEADZONE = setting_rightStickDeadZone;
+    log_info("settings_load() passed.");
 }
 
 void so_load_from_apk() {

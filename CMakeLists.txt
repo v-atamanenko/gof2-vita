@@ -60,6 +60,7 @@ add_executable(${CMAKE_PROJECT_NAME}
                loader/utils/dialog.c
                loader/utils/glutil.c
                loader/utils/logger.c
+               loader/utils/settings.c
                loader/utils/utils.c
                loader/AFakeNative/ALooper.cpp
                lib/FalsoJNI/FalsoJNI.c
@@ -126,6 +127,37 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
                       SceVshBridge_stub
                       )
 
+add_executable(configurator
+               loader/configurator/main.cpp
+               )
+
+target_include_directories(configurator SYSTEM
+                           PUBLIC ${CMAKE_SOURCE_DIR}/lib
+                           )
+
+target_link_libraries(configurator
+                      imgui
+                      vitaGL
+                      vitashark
+                      SceShaccCgExt
+                      m
+                      mathneon
+                      taihen_stub
+                      SceAppMgr_stub
+                      SceAudio_stub
+                      SceCtrl_stub
+                      SceCommonDialog_stub
+                      SceDisplay_stub
+                      SceKernelDmacMgr_stub
+                      SceGxm_stub
+                      SceShaccCg_stub
+                      SceSysmodule_stub
+                      SceTouch_stub
+                      SceVshBridge_stub
+                      )
+
+vita_create_self(configurator.bin configurator UNSAFE)
+
 vita_create_self(eboot.bin ${CMAKE_PROJECT_NAME} UNSAFE)
 vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 VERSION ${VITA_VERSION}
@@ -136,6 +168,8 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/livearea/bg0.png sce_sys/livearea/contents/bg0.png
                 ${CMAKE_SOURCE_DIR}/livearea/template.xml sce_sys/livearea/contents/template.xml
                 ${CMAKE_SOURCE_DIR}/shaders/gxp shaders
+                ${CMAKE_SOURCE_DIR}/loader/configurator/configurator-bg.png configurator-bg.png
+                ${CMAKE_BINARY_DIR}/configurator.bin configurator.bin
                 )
 
 add_custom_target(send
