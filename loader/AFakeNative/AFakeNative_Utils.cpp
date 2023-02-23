@@ -2,7 +2,6 @@
 
 #include <sys/time.h>
 #include <psp2/kernel/clib.h>
-#include <cstdio>
 
 uint64_t AFN_timeMillis() {
     struct timeval te{};
@@ -15,7 +14,7 @@ void LOG_ALWAYS_FATAL_IF(bool cond, const char * fmt, ...) {
     if (cond) {
         static char text[2048];
         static char fmt_2[2048];
-        snprintf(fmt_2, 2047, "FATAL: %s\n", fmt);
+        sceClibSnprintf(fmt_2, 2047, "FATAL: %s\n", fmt);
 
         va_list list;
         va_start(list, fmt);
@@ -30,7 +29,7 @@ void LOG_ALWAYS_FATAL_IF(bool cond, const char * fmt, ...) {
 void LOG_ALWAYS_FATAL(const char * fmt, ...) {
     static char text[2048];
     static char fmt_2[2048];
-    snprintf(fmt_2, 2047, "FATAL: %s\n", fmt);
+    sceClibSnprintf(fmt_2, 2047, "FATAL: %s\n", fmt);
 
     va_list list;
     va_start(list, fmt);
@@ -44,7 +43,7 @@ void LOG_ALWAYS_FATAL(const char * fmt, ...) {
 void ALOGE(const char * fmt, ...) {
     static char text[2048];
     static char fmt_2[2048];
-    snprintf(fmt_2, 2047, "ALOGE: %s\n", fmt);
+    sceClibSnprintf(fmt_2, 2047, "ALOGE: %s\n", fmt);
 
     va_list list;
     va_start(list, fmt);
@@ -57,7 +56,7 @@ void ALOGE(const char * fmt, ...) {
 void ALOGW(const char * fmt, ...) {
     static char text[2048];
     static char fmt_2[2048];
-    snprintf(fmt_2, 2047, "ALOGW: %s\n", fmt);
+    sceClibSnprintf(fmt_2, 2047, "ALOGW: %s\n", fmt);
 
     va_list list;
     va_start(list, fmt);
@@ -70,7 +69,7 @@ void ALOGW(const char * fmt, ...) {
 void ALOGD(const char * fmt, ...) {
     static char text[2048];
     static char fmt_2[2048];
-    snprintf(fmt_2, 2047, "ALOGD: %s\n", fmt);
+    sceClibSnprintf(fmt_2, 2047, "ALOGD: %s\n", fmt);
 
     va_list list;
     va_start(list, fmt);

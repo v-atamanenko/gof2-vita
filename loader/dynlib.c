@@ -91,6 +91,8 @@ extern const char *BIONIC_ctype_;
 extern const short *BIONIC_tolower_tab_;
 extern const short *BIONIC_toupper_tab_;
 
+static FILE __sF_fake[3];
+
 bool first_swap = true;
 
 uint32_t last_render_time;
@@ -194,6 +196,7 @@ so_default_dynlib default_dynlib[] = {
         { "__cxa_pure_virtual", (uintptr_t)&__cxa_pure_virtual },
         { "__dso_handle", (uintptr_t)&__dso_handle },
         { "__errno", (uintptr_t)&__errno },
+        { "__sF", (uintptr_t)&__sF_fake },
         { "__stack_chk_fail", (uintptr_t)&__stack_chk_fail },
         { "__stack_chk_guard", (uintptr_t)&__stack_chk_guard },
         { "__swbuf", (uintptr_t)&__swbuf },
@@ -336,5 +339,8 @@ so_default_dynlib default_dynlib[] = {
 };
 
 void resolve_imports(so_module* mod) {
+    __sF_fake[0] = *stdin;
+    __sF_fake[1] = *stdout;
+    __sF_fake[2] = *stderr;
     so_resolve(mod, default_dynlib, sizeof(default_dynlib), 0);
 }

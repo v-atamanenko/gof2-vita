@@ -84,7 +84,7 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
     }
 
     if (file) {
-        sceClibPrintf("glShaderSourceHook: loading shader %s\n", gxp_path);
+        logv_info("glShaderSourceHook: loading shader %s", gxp_path);
         size_t shaderSize;
         void *shaderBuf;
 
@@ -104,7 +104,7 @@ void glShaderSourceHook(GLuint shader, GLsizei count, const GLchar **string,
 }
 
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor) {
-    logv_info("[GL] eglInitialize(0x%x)\n", (int)dpy);
+    logv_debug("eglInitialize(0x%x)", (int)dpy);
 
     gl_init();
 
@@ -171,7 +171,7 @@ EGLBoolean eglQuerySurface(EGLDisplay dpy, EGLSurface eglSurface, EGLint attribu
             *value = EGL_FALSE;
             break;
         default:
-            fprintf(stderr, "eglQuerySurface %x  EGL_BAD_ATTRIBUTE", attribute);
+            logv_error("eglQuerySurface %x  EGL_BAD_ATTRIBUTE", attribute);
             break;
     }
 

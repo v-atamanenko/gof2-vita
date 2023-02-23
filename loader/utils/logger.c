@@ -31,6 +31,7 @@ static char buffer_b[2048];
             sceClibPrintf("Error: failed to create log mutex: 0x%x\n", ret); \
             return; \
         } \
+        _log_mutex_inited = 1; \
     } \
     sceKernelLockLwMutex(&_log_mutex, 1, NULL);
 

@@ -172,7 +172,7 @@ int pseudo_epoll_ctl(int epfd, int op, int fd, struct pseudo_epoll_event *event)
     }
 
     if (op == PSEUDO_EPOLL_CTL_ADD || op == PSEUDO_EPOLL_CTL_MOD) {
-        printf("PSEUDO_EPOLL_CTL_ADD/MOD for fd %i", fd);
+        //printf("PSEUDO_EPOLL_CTL_ADD/MOD for fd %i", fd);
         epollElement ele;
         ele.e = *event;
         ele.fd = fd;

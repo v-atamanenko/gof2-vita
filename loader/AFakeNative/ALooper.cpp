@@ -169,8 +169,6 @@ ALooper* ALooper_prepare(int opts) {
         }
     }
 
-    ALOGD("prepared ALooper %p\n", ial);
-
     return (ALooper *) ial;
 }
 
