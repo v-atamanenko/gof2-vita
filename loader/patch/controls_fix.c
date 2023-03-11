@@ -77,12 +77,20 @@ void keyPressed(int keycode) {
                 OnTouchBegin(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchBegin(appManager, 62, 185, keycode);
+                OnTouchBegin(appManager, *Globals__fast_forward_x + 2, *Globals__fast_forward_y + 2, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchBegin(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
                 break;
         }
+    }
+}
+
+void sendFakeTouch() {
+    if (GetCurrentApplicationModule(*Globals__appManager) == 2) {
+        void * appManager = *(void **)(*(void **)(gEngine) + 0x28);
+        OnTouchBegin(appManager, 99, 445, 0);
+        OnTouchEnd(appManager, 99, 445, 0);
     }
 }
 
@@ -127,7 +135,7 @@ void keyReleased(int keycode) {
                 OnTouchEnd(appManager, *Globals__autopilot_x, *Globals__autopilot_y, keycode);
                 break;
             case AKEYCODE_BUTTON_R1:
-                OnTouchEnd(appManager, 62, 185, keycode);
+                OnTouchEnd(appManager, *Globals__fast_forward_x + 2, *Globals__fast_forward_y + 2, keycode);
                 break;
             case AKEYCODE_BUTTON_SELECT:
                 OnTouchEnd(appManager, *Globals__action_menu_x, *Globals__action_menu_y, keycode);
@@ -138,8 +146,8 @@ void keyReleased(int keycode) {
 
 void handleTouchPadEvent(int unused, int pointerId, int action, float x, float y) {
     if (GetCurrentApplicationModule(*Globals__appManager) == 2 && setting_physicalControlsEnabled) {
-        float uVar4 = (float)x * (float)*Globals__smallButton_dim * 2;
-        float uVar3 = (float)y * (float)*Globals__smallButton_dim * 2;
+        float uVar4 = x * (float)*Globals__smallButton_dim * 2;
+        float uVar3 = y * (float)*Globals__smallButton_dim * 2;
 
         float fVar8 = uVar4 + ((float)*Globals__touch_stick_x - (float)*Globals__smallButton_dim);
         float fVar7 = uVar3 + ((float)*Globals__touch_stick_y - (float)*Globals__smallButton_dim);
@@ -164,8 +172,8 @@ void patch__controls_fix() {
     Globals__boost_x = (int *) so_symbol(&so_mod, "_ZN7Globals7boost_xE");
     Globals__autopilot_y = (int *) so_symbol(&so_mod, "_ZN7Globals11autopilot_yE");
     Globals__autopilot_x = (int *) so_symbol(&so_mod, "_ZN7Globals11autopilot_xE");
-    Globals__fast_forward_y = (int *) so_symbol(&so_mod, "_ZN7Globals14fast_forward_xE");
-    Globals__fast_forward_x = (int *) so_symbol(&so_mod, "_ZN7Globals14fast_forward_yE");
+    Globals__fast_forward_x = (int *) so_symbol(&so_mod, "_ZN7Globals14fast_forward_xE");
+    Globals__fast_forward_y = (int *) so_symbol(&so_mod, "_ZN7Globals14fast_forward_yE");
     Globals__pause_y = (int *) so_symbol(&so_mod, "_ZN7Globals7pause_yE");
     Globals__pause_x = (int *) so_symbol(&so_mod, "_ZN7Globals7pause_xE");
     Globals__action_menu_y = (int *) so_symbol(&so_mod, "_ZN7Globals13action_menu_yE");

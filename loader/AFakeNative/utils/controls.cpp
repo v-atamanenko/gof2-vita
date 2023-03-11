@@ -21,6 +21,13 @@
 extern "C" {
     float L_INNER_DEADZONE __attribute__((weak)) = 0.11f;
     float R_INNER_DEADZONE __attribute__((weak)) = 0.11f;
+
+    int AInput_enableLeftStick __attribute__((weak)) = 0;
+    int AInput_enableRightStick __attribute__((weak)) = 0;
+
+    // GoF2-specific hack: send a quick singular touch after we release the
+    // stick to avoid the bug with fast forward
+    extern void sendFakeTouch();
 }
 
 #define L_OUTER_DEADZONE 0.99f
@@ -29,7 +36,7 @@ extern "C" {
 #define TOUCHPAD_X_RADIUS 180
 #define TOUCHPAD_Y_RADIUS 180
 
-#define TOUCHPAD_LX_BASE TOUCHPAD_X_RADIUS
+#define TOUCHPAD_LX_BASE TOUCHPAD_X_RADIUS + 20
 #define TOUCHPAD_LY_BASE TOUCHPAD_Y_RADIUS
 #define TOUCHPAD_RX_BASE ( 960 - TOUCHPAD_LX_BASE )
 #define TOUCHPAD_RY_BASE TOUCHPAD_LY_BASE
@@ -246,7 +253,7 @@ void sendTouchpadDown(float x, float y, int id) {
     // Get global event state to have up-to-date indices and coordinates,
     // but send a copy to not send MOVE too early / too often
     inputEvent ev_ptrdown = stickInputEvent;
-    if (sticksDown == 0) {
+    if (sticksDown <= 0) {
         ev_ptrdown.motion_action = AMOTION_EVENT_ACTION_DOWN;
     } else {
         // For Pointer* actions, we have to set pointer index in respective bits
@@ -264,7 +271,7 @@ void sendTouchpadUp(float x, float y, int id) {
         stickInputEvent.motion_x[idx] = x;
         stickInputEvent.motion_y[idx] = y;
 
-        if (sticksDown == 1) {
+        if (sticksDown <= 1) {
             ev.motion_action = AMOTION_EVENT_ACTION_UP;
         } else {
             // For Pointer* actions, we have to set pointer index in respective bits
@@ -277,6 +284,11 @@ void sendTouchpadUp(float x, float y, int id) {
         AInputQueue_enqueueEvent(inputQueue, aie);
 
         removeById(&stickInputEvent, id);
+
+        // GoF2-specific hack
+        if (ev.motion_action == AMOTION_EVENT_ACTION_UP) {
+            sendFakeTouch();
+        }
     }
 }
 
@@ -324,18 +336,20 @@ void pollPad() {
     // Remember that ids and indexes are different things, so indexes still can be any.
 
     if (lastLx == 0 && lastLy == 0 && (lx != 0 || ly != 0)) {
-        sendTouchpadDown(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
+        if (AInput_enableLeftStick)
+            sendTouchpadDown(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
     }
 
     if (lastRx == 0 && lastRy == 0 && (rx != 0 || ry != 0)) {
-        sendTouchpadDown(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
+        if (AInput_enableRightStick)
+            sendTouchpadDown(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
     }
 
     int numPointersMoved = 0;
 
     if ((lastLx != 0 || lastLy != 0) && (lx != 0 || ly != 0)) {
         int idx = getIdxById(&stickInputEvent, LSTICK_PTR_ID);
-        if (idx != -1) {
+        if (idx != -1 && AInput_enableLeftStick) {
             stickInputEvent.motion_x[idx] = TOUCHPAD_LX_BASE + (TOUCHPAD_X_RADIUS * lx);
             stickInputEvent.motion_y[idx] = TOUCHPAD_LY_BASE + (TOUCHPAD_Y_RADIUS * ly);
             numPointersMoved++;
@@ -344,7 +358,7 @@ void pollPad() {
 
     if ((lastRx != 0 || lastRy != 0) && (rx != 0 || ry != 0)) {
         int idx = getIdxById(&stickInputEvent, RSTICK_PTR_ID);
-        if (idx != -1) {
+        if (idx != -1 && AInput_enableRightStick) {
             stickInputEvent.motion_x[idx] = TOUCHPAD_RX_BASE + (TOUCHPAD_X_RADIUS * rx);
             stickInputEvent.motion_y[idx] = TOUCHPAD_RY_BASE + (TOUCHPAD_Y_RADIUS * ry);
             numPointersMoved++;
@@ -359,10 +373,12 @@ void pollPad() {
     }
 
     if ((lastLx != 0 || lastLy != 0) && (lx == 0 && ly == 0)) {
-        sendTouchpadUp(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
+        if (AInput_enableLeftStick)
+            sendTouchpadUp(TOUCHPAD_LX_BASE, TOUCHPAD_LY_BASE, LSTICK_PTR_ID);
     }
 
     if ((lastRx != 0 || lastRy != 0) && (rx == 0 && ry == 0)) {
-        sendTouchpadUp(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
+        if (AInput_enableRightStick)
+            sendTouchpadUp(TOUCHPAD_RX_BASE, TOUCHPAD_RY_BASE, RSTICK_PTR_ID);
     }
 }

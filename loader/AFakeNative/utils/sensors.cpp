@@ -41,9 +41,9 @@ void sensors_poll() {
         switch (ASensor_getType(s)) {
         case ASENSOR_TYPE_ACCELEROMETER: {
             ASensorVector v;
-            v.x = sensor.accelerometer.x*ASENSOR_STANDARD_GRAVITY * -1; // somehow, left and right tilt are inverted without (* -1)
-            v.y = sensor.accelerometer.y*ASENSOR_STANDARD_GRAVITY;
-            v.z = sensor.accelerometer.z*ASENSOR_STANDARD_GRAVITY;
+            v.x = sensor.accelerometer.x * ASENSOR_STANDARD_GRAVITY * -1;
+            v.y = sensor.accelerometer.y * ASENSOR_STANDARD_GRAVITY * -1;
+            v.z = sensor.accelerometer.z * ASENSOR_STANDARD_GRAVITY * -1;
 
             ASensorEvent e;
             e.version = sizeof(ASensorEvent);

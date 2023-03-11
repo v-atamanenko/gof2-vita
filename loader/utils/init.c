@@ -41,6 +41,8 @@
 // Weak symbols from AFakeNative to be overriden with our settings
 float L_INNER_DEADZONE = 0.11f;
 float R_INNER_DEADZONE = 0.11f;
+int AInput_enableLeftStick = 1;
+int AInput_enableRightStick = 0;
 
 extern so_module so_mod;
 
@@ -88,6 +90,11 @@ void soloader_init_all() {
         logv_info("so_mem_load(%s) passed.", SO_PATH);
     }
 
+    settings_load();
+    L_INNER_DEADZONE = setting_leftStickDeadZone;
+    R_INNER_DEADZONE = setting_rightStickDeadZone;
+    log_info("settings_load() passed.");
+
     so_relocate(&so_mod);
     log_info("so_relocate() passed.");
 
@@ -108,11 +115,6 @@ void soloader_init_all() {
 
     jni_init();
     log_info("jni_init() passed.");
-
-    settings_load();
-    L_INNER_DEADZONE = setting_leftStickDeadZone;
-    R_INNER_DEADZONE = setting_rightStickDeadZone;
-    log_info("settings_load() passed.");
 }
 
 void so_load_from_apk() {
