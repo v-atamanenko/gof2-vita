@@ -171,6 +171,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/shaders/gxp shaders
                 ${CMAKE_SOURCE_DIR}/loader/configurator/configurator-bg.png configurator-bg.png
                 ${CMAKE_BINARY_DIR}/configurator.bin configurator.bin
+                ${CMAKE_SOURCE_DIR}/patch patch
                 )
 
 add_custom_target(send
@@ -190,7 +191,7 @@ add_custom_target(send_kvdb
 
 add_custom_target(dump
                   COMMAND ${CMAKE_SOURCE_DIR}/scripts/get_dump.sh ${PSVITAIP}
-                  COMMAND python3 ${PARSECOREPATH} coredump ${CMAKE_PROJECT_NAME}
+                  COMMAND python3.9 ${PARSECOREPATH} coredump ${CMAKE_PROJECT_NAME}
                   )
 
 add_custom_target(reboot

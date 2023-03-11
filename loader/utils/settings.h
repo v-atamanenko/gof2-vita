@@ -21,6 +21,9 @@ extern float setting_leftStickDeadZone;
 extern float setting_rightStickDeadZone;
 extern int setting_fpsLock;
 extern bool setting_physicalControlsEnabled;
+extern bool setting_useHdMod;
+extern bool setting_useRebalanceMod;
+extern bool setting_useRebalanceModOldPrices;
 
 void settings_load();
 void settings_save();
