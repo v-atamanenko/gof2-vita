@@ -170,6 +170,7 @@ vita_create_vpk(${VITA_VPKNAME}.vpk ${VITA_TITLEID} eboot.bin
                 ${CMAKE_SOURCE_DIR}/livearea/template.xml sce_sys/livearea/contents/template.xml
                 ${CMAKE_SOURCE_DIR}/shaders/gxp shaders
                 ${CMAKE_SOURCE_DIR}/loader/configurator/configurator-bg.png configurator-bg.png
+                ${CMAKE_SOURCE_DIR}/loader/configurator/SourceSansPro-Regular.ttf SourceSansPro-Regular.ttf
                 ${CMAKE_BINARY_DIR}/configurator.bin configurator.bin
                 ${CMAKE_SOURCE_DIR}/patch patch
                 )

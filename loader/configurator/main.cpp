@@ -29,13 +29,19 @@ char *options_descs[] = {
         "Deadzone for the right analog stick. Increase if you have stick drift issues.\nThe default value is: 0.11.", // rightStickDeadZone
         "If you want to reduce FPS fluctuations and instead stay on a lower but constant level, you may try this.\nThe default value is: None.", // fpsLock
         "Choose whether to use the on-screen touch controls or the Vita's buttons and analog sticks for input.\nThe default value is: Physical.", // physicalControlsEnabled
+        "Choose whether to use the HD textures patch that improves the look of planets in the game and adds some eye-candy like updated logo.\nThe default value is: Enabled.", // setting_useHdMod
+        "Use the game rebalance mod. Refer to GitHub readme for details. WARNING: enabling this will break your old saves if you had any.\nThe default value is: Disabled.", // setting_useRebalanceMod
+        "Use the game rebalance mod but keep original item prices. Refer to GitHub readme for details. WARNING: enabling this will break your old saves if you had any. The default value is: Disabled.", // setting_useRebalanceModOldPrices
 };
 
 enum {
     OPT_DEADZONE_L,
     OPT_DEADZONE_R,
     OPT_FPSLOCK,
-    OPT_PHYSCONTROLS
+    OPT_PHYSCONTROLS,
+    OPT_HDMOD,
+    OPT_REBALANCE,
+    OPT_REBALANCE_OLDPRICES,
 };
 
 char *desc = nullptr;
@@ -206,6 +212,16 @@ int main(int argc, char *argv[]) {
 
     ImGui::GetIO().MouseDrawCursor = false;
 
+    ImFont* FontSm;
+    ImFont* FontMd;
+    ImFont* FontLg;
+
+
+    ImGuiIO& io = ImGui::GetIO();
+    FontSm = ImGui::GetIO().Fonts->AddFontFromFileTTF("SourceSansPro-Regular.ttf", 14, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+    FontLg = ImGui::GetIO().Fonts->AddFontFromFileTTF("SourceSansPro-Regular.ttf", 20, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+    FontMd = ImGui::GetIO().Fonts->AddFontFromFileTTF("SourceSansPro-Regular.ttf", 16, nullptr, io.Fonts->GetGlyphRangesCyrillic());
+
     while (exit_code == 0xDEAD) {
         desc = nullptr;
         ImGui_ImplVitaGL_NewFrame();
@@ -225,17 +241,30 @@ int main(int argc, char *argv[]) {
 
         ImGui::BeginGroup();
 
-        ImGui::PushItemWidth(385);
+        {
+            ImGui::PushItemWidth(385);
+    
+            ImGui::PushFont(FontLg);
+            ImGui::SetCursorPos({75, 79});
+            ImGui::Text("Left Stick Deadzone");
+            ImGui::PopFont();
+    
+            ImGui::SetCursorPos({73, 103});
+            ImGui::SliderFloat("##leftStickDeadZone", &setting_leftStickDeadZone, 0.01f, 0.5f, "%.2f");
+            SetDescription(OPT_DEADZONE_L);
+    
+            ImGui::PushFont(FontLg);
+            ImGui::SetCursorPos({75, 139});
+            ImGui::Text("Right Stick Deadzone");
+            ImGui::PopFont();
+    
+            ImGui::SetCursorPos({73, 163});
+            ImGui::SliderFloat("##rightStickDeadZone", &setting_rightStickDeadZone, 0.01f, 0.5f, "%.2f");
+            SetDescription(OPT_DEADZONE_R);
+    
+            ImGui::PopItemWidth();
+        }
 
-        ImGui::SetCursorPos({73, 135});
-        ImGui::SliderFloat("##leftStickDeadZone", &setting_leftStickDeadZone, 0.01f, 0.5f, "%.2f");
-        SetDescription(OPT_DEADZONE_L);
-
-        ImGui::SetCursorPos({73, 195});
-        ImGui::SliderFloat("##rightStickDeadZone", &setting_rightStickDeadZone, 0.01f, 0.5f, "%.2f");
-        SetDescription(OPT_DEADZONE_R);
-
-        ImGui::PopItemWidth();
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0,0});
 
         // base color
@@ -248,48 +277,82 @@ int main(int argc, char *argv[]) {
         ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(0, 146, 255, 255));
 
         {
+            ImGui::PushFont(FontLg);
+            ImGui::SetCursorPos({75, 200});
+            ImGui::Text("Control Scheme");
+            ImGui::PopFont();
+
             ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {3,10});
-            ImGui::SetCursorPos({73, 255});
-            if (ImGui::SelectableCentered("Touch##cheat_infiniteAmmo", !setting_physicalControlsEnabled, 0, {80,20}))
+            ImGui::SetCursorPos({73, 223});
+            if (ImGui::SelectableCentered("Touch##scheme", !setting_physicalControlsEnabled, 0, {80,20}))
                 setting_physicalControlsEnabled = false;
             SetDescription(OPT_PHYSCONTROLS);
             ImGui::PopStyleVar(1);
 
-            ImGui::SetCursorPos({157, 255});
-            if (ImGui::SelectableCentered("Physical##cheat_infiniteAmmo", setting_physicalControlsEnabled, 0, {80,20}))
+            ImGui::SetCursorPos({157, 223});
+            if (ImGui::SelectableCentered("Physical##scheme", setting_physicalControlsEnabled, 0, {80,20}))
                 setting_physicalControlsEnabled = true;
             SetDescription(OPT_PHYSCONTROLS);
         }
 
         {
-            ImGui::SetCursorPos({73, 313});
+            ImGui::PushFont(FontLg);
+            ImGui::SetCursorPos({75, 259});
+            ImGui::Text("FPS Lock");
+            ImGui::PopFont();
+
+            ImGui::SetCursorPos({73, 281});
             if (ImGui::SelectableCentered("No Lock", setting_fpsLock == 0, 0, {120,20}))
                 setting_fpsLock = 0;
             SetDescription(OPT_FPSLOCK);
 
-            ImGui::SetCursorPos({210, 313});
+            ImGui::SetCursorPos({210, 281});
             if (ImGui::SelectableCentered("45 FPS", setting_fpsLock == 45, 0, {72,20}))
                 setting_fpsLock = 45;
             SetDescription(OPT_FPSLOCK);
 
-            ImGui::SetCursorPos({298, 313});
+            ImGui::SetCursorPos({298, 281});
             if (ImGui::SelectableCentered("30 FPS", setting_fpsLock == 30, 0, {72,20}))
                 setting_fpsLock = 30;
             SetDescription(OPT_FPSLOCK);
 
-            ImGui::SetCursorPos({386, 313});
+            ImGui::SetCursorPos({386, 281});
             if (ImGui::SelectableCentered("25 FPS", setting_fpsLock == 25, 0, {72,20}))
                 setting_fpsLock = 25;
             SetDescription(OPT_FPSLOCK);
+        }
+
+        {
+            ImGui::PushFont(FontLg);
+            ImGui::SetCursorPos({75, 320});
+            ImGui::Text("Patches");
+            ImGui::PopFont();
+
+            ImGui::SetCursorPos({73, 339});
+            if (ImGui::SelectableCentered("HD Textures", setting_useHdMod == true, 0, {120,20}))
+                setting_useHdMod = !setting_useHdMod;
+            SetDescription(OPT_HDMOD);
+
+            ImGui::SetCursorPos({210, 339});
+            if (ImGui::SelectableCentered("Rebalance", setting_useRebalanceMod == true, 0, {84,20}))
+                setting_useRebalanceMod = !setting_useRebalanceMod;
+            SetDescription(OPT_REBALANCE);
+
+            ImGui::SetCursorPos({311, 339});
+            if (ImGui::SelectableCentered("Rebalance (Old Prices)", setting_useRebalanceModOldPrices == true, 0, {152,20}))
+                setting_useRebalanceModOldPrices = !setting_useRebalanceModOldPrices;
+            SetDescription(OPT_REBALANCE_OLDPRICES);
         }
 
         ImGui::PopStyleColor(3);
         ImGui::PopStyleVar();
 
         if (desc) {
-            ImGui::SetCursorPos({72, 390});
+            ImGui::SetCursorPos({72, 418});
             ImGui::PushTextWrapPos(464);
+            ImGui::PushFont(FontMd);
             ImGui::Text(desc);
+            ImGui::PopFont();
             ImGui::PopTextWrapPos();
         }
 
@@ -299,15 +362,17 @@ int main(int argc, char *argv[]) {
 
         ImGui::BeginGroup();
 
+        ImGui::PushFont(FontLg);
         // first color is label and border, second is hover
-        if (FancyButton("Save and Launch", {523, 394}, {187, 40}, IM_COL32(0,146,255,255), IM_COL32(0,146,255,40))) {
+        if (FancyButton("Save and Launch", {523, 423}, {187, 40}, IM_COL32(0,146,255,255), IM_COL32(0,146,255,40))) {
             settings_save();
             exit_code = 1;
         }
 
-        if (FancyButton("Reset Settings", {724, 394}, {187, 40}, IM_COL32(58,87,237,255), IM_COL32(12,16,40,255))) {
+        if (FancyButton("Reset Settings", {724, 423}, {187, 40}, IM_COL32(58,87,237,255), IM_COL32(12,16,40,255))) {
             settings_reset();
         }
+        ImGui::PopFont();
 
         ImGui::EndGroup();
 
